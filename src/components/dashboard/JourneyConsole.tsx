@@ -36,8 +36,10 @@ import type {
 
 // ─── On-chain context (client-readable env) ────────────────────────────────
 const EXPLORER = process.env.NEXT_PUBLIC_EXPLORER_BASE || 'https://sepolia.etherscan.io'
+const BUYER = process.env.NEXT_PUBLIC_BUYER_ADDRESS || ''
 const ESCROW = process.env.NEXT_PUBLIC_ESCROW_ADDRESS || ''
 const SUPPLIER = process.env.NEXT_PUBLIC_SUPPLIER_ADDRESS || ''
+const USDC = process.env.NEXT_PUBLIC_USDC_ADDRESS || ''
 
 // ─── Corridor geography (Lagos → Hong Kong → Shenzhen) ─────────────────────
 // HK and Shenzhen overlap on the globe — Shenzhen is the pulse's final hop but
@@ -86,6 +88,12 @@ function truncHash(hash: string): string {
 function truncAddr(addr: string): string {
   if (!addr || addr.length <= 14) return addr
   return `${addr.slice(0, 8)}…${addr.slice(-6)}`
+}
+
+// A longer truncation for the prominent wallet chips (more of the real address shown).
+function truncAddrLong(addr: string): string {
+  if (!addr || addr.length <= 20) return addr
+  return `${addr.slice(0, 10)}…${addr.slice(-8)}`
 }
 
 function fmtAmount(n: number): string {
@@ -850,8 +858,8 @@ export default function JourneyConsole({
       <div
         style={{
           position: 'relative',
-          flex: '0 0 42%',
-          maxWidth: 560,
+          flex: '0 0 44%',
+          maxWidth: 600,
           height: '100%',
           minHeight: 0,
           display: 'flex',
@@ -1247,26 +1255,32 @@ function SettlementBlock({
 }) {
   const fundsThrough = settling || settled
 
-  // BLOCKED → refused, funds held in escrow, no settlement links.
+  // BLOCKED → refused. Funds were deposited then held; the release is refused
+  // on-chain. Show the same flow so the refusal is just as visible as a settle.
   if (blocked) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
-          padding: '16px 18px',
-          background: 'var(--accent-soft)',
-          borderLeft: '3px solid var(--blocked)',
-        }}
-      >
-        <span style={{ fontFamily: 'var(--font-hero)', fontSize: 16, fontWeight: 600, color: 'var(--blocked)', letterSpacing: '0.02em' }}>
-          Refused — funds held in escrow
-        </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: 1.6, color: 'var(--text-2)' }}>
-          The compliance gate rejected the trade. No value left the escrow
-          contract; nothing was paid to the supplier.
-        </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+            padding: '14px 18px',
+            background: 'var(--accent-soft)',
+            borderLeft: '3px solid var(--blocked)',
+          }}
+        >
+          <span style={{ fontFamily: 'var(--font-hero)', fontSize: 18, fontWeight: 700, color: 'var(--blocked)', letterSpacing: '0.01em' }}>
+            Refused — funds held in escrow
+          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: 1.6, color: 'var(--text-2)' }}>
+            The compliance gate rejected the trade. No value left the escrow
+            contract; nothing was paid to the supplier.
+          </span>
+        </div>
+
+        {/* The same real wallets — but the release step is refused on-chain */}
+        <WalletFlow amount={amount ?? ''} released={false} />
       </div>
     )
   }
@@ -1292,10 +1306,10 @@ function SettlementBlock({
     )
   }
 
-  // SETTLED → the real, clickable on-chain proof.
+  // SETTLED → the real, clickable on-chain money flow.
   const txUrl = tx.explorerUrl || (tx.hash ? `${EXPLORER}/tx/${tx.hash}` : null)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Settled-in headline */}
       <div
         style={{
@@ -1317,37 +1331,164 @@ function SettlementBlock({
         )}
       </div>
 
-      {/* The clickable on-chain rows */}
+      {/* The real value flow across live Sepolia wallets */}
+      <WalletFlow amount={amount ?? ''} released />
+
+      {/* Transaction + the stablecoin asset, clickable */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1, borderTop: '1px solid var(--border)' }}>
         <ChainRow
-          label="Transaction"
+          label="Settlement transaction"
           value={truncHash(tx.hash)}
           title={tx.hash}
           href={txUrl}
           chain={tx.chain}
           mono
         />
-        {ESCROW && (
+        {USDC && (
           <ChainRow
-            label="Escrow contract"
-            value={truncAddr(ESCROW)}
-            title={ESCROW}
-            href={`${EXPLORER}/address/${ESCROW}`}
-            hint="inspect the live contract"
-            mono
-          />
-        )}
-        {SUPPLIER && (
-          <ChainRow
-            label="Supplier paid"
-            value={truncAddr(SUPPLIER)}
-            title={SUPPLIER}
-            href={`${EXPLORER}/address/${SUPPLIER}`}
-            hint="recipient wallet"
+            label="Stablecoin asset"
+            value={`MockUSDC · ${truncAddr(USDC)}`}
+            title={USDC}
+            href={`${EXPLORER}/address/${USDC}`}
+            hint="the token that moved"
             mono
           />
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── The real on-chain actors + the value moving between them ───────────────
+// Every address is a live Sepolia account/contract; the step labels mirror the
+// escrow's actual function calls. Shown on settle (released) and on a block
+// (released=false → the release step is refused and the supplier stays unpaid).
+function WalletFlow({ amount, released }: { amount: string; released: boolean }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <WalletNode
+        tone="var(--accent)"
+        role="Buyer · escrow funder"
+        addr={BUYER}
+        hint="deposits the stablecoin into escrow"
+      />
+      <FlowStep action={`deposit${amount ? `  ${amount}` : ''}`} state="done" />
+      <WalletNode
+        tone="var(--text-1)"
+        role="TradeEscrow · holds the funds"
+        addr={ESCROW}
+        hint="releases only on an AI-compliance pass"
+        square
+      />
+      <FlowStep
+        action="approveAndRelease() · AI-gated"
+        state={released ? 'done' : 'refused'}
+      />
+      <WalletNode
+        tone={released ? 'var(--cleared)' : 'var(--text-3)'}
+        role={released ? 'Supplier · paid' : 'Supplier · not paid'}
+        addr={SUPPLIER}
+        hint={released ? 'received the stablecoin' : 'no value released — held in escrow'}
+        dim={!released}
+      />
+    </div>
+  )
+}
+
+// One on-chain actor: node dot + role + a prominent address chip + Etherscan ↗.
+function WalletNode({
+  tone,
+  role,
+  addr,
+  hint,
+  square,
+  dim,
+}: {
+  tone: string
+  role: string
+  addr: string
+  hint: string
+  square?: boolean
+  dim?: boolean
+}) {
+  const href = addr ? `${EXPLORER}/address/${addr}` : null
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, opacity: dim ? 0.5 : 1 }}>
+      <span
+        style={{
+          width: 11,
+          height: 11,
+          marginTop: 3,
+          borderRadius: square ? 2 : '50%',
+          background: tone,
+          flexShrink: 0,
+          boxShadow: '0 0 0 4px rgba(0,0,0,0.03)',
+        }}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)' }}>
+          {role}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+          <span
+            title={addr}
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--text-1)',
+              letterSpacing: '0.02em',
+              background: 'var(--bg-sunken)',
+              padding: '2px 7px',
+              borderRadius: 3,
+            }}
+          >
+            {addr ? truncAddrLong(addr) : '—'}
+          </span>
+          {href && (
+            <a
+              className="fs-chain-link"
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 9.5,
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: 'var(--accent)',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span className="fs-chain-link-text">Etherscan</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        </span>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10.5, color: 'var(--text-3)' }}>{hint}</span>
+      </div>
+    </div>
+  )
+}
+
+// The connector between two wallet nodes: a vertical tick under the node dot +
+// the on-chain action that moved the value.
+function FlowStep({ action, state }: { action: string; state: 'done' | 'refused' }) {
+  const color = state === 'refused' ? 'var(--blocked)' : 'var(--cleared)'
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 11, height: 30 }}>
+      <span style={{ width: 11, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+        <span style={{ width: 1.5, height: '100%', background: color, opacity: 0.6 }} />
+      </span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, color, letterSpacing: '0.02em' }}>
+        <span aria-hidden="true">{state === 'refused' ? '✕' : '↓'}</span>
+        <span>{action}</span>
+      </span>
     </div>
   )
 }
