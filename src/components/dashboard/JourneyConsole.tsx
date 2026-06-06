@@ -1316,18 +1316,21 @@ function WalletFlow({ amount, released }: { amount: string; released: boolean })
         role="Buyer · escrow funder"
         addr={BUYER}
         hint="deposits the stablecoin into escrow"
+        arriveDelay={0}
       />
-      <FlowStep action={`deposit${amount ? `  ${amount}` : ''}`} state="done" />
+      <FlowStep action={`deposit${amount ? `  ${amount}` : ''}`} state="done" delay={0.2} />
       <WalletNode
         tone="var(--text-1)"
         role="TradeEscrow · holds the funds"
         addr={ESCROW}
         hint="releases only on an AI-compliance pass"
         square
+        arriveDelay={0.7}
       />
       <FlowStep
         action="approveAndRelease() · AI-gated"
         state={released ? 'done' : 'refused'}
+        delay={0.95}
       />
       <WalletNode
         tone={released ? 'var(--cleared)' : 'var(--text-3)'}
@@ -1335,6 +1338,7 @@ function WalletFlow({ amount, released }: { amount: string; released: boolean })
         addr={SUPPLIER}
         hint={released ? 'received the stablecoin' : 'no value released — held in escrow'}
         dim={!released}
+        arriveDelay={released ? 1.5 : undefined}
       />
     </div>
   )
@@ -1348,6 +1352,7 @@ function WalletNode({
   hint,
   square,
   dim,
+  arriveDelay,
 }: {
   tone: string
   role: string
@@ -1355,6 +1360,7 @@ function WalletNode({
   hint: string
   square?: boolean
   dim?: boolean
+  arriveDelay?: number
 }) {
   const href = addr ? `${EXPLORER}/address/${addr}` : null
   return (
@@ -1368,6 +1374,7 @@ function WalletNode({
           background: tone,
           flexShrink: 0,
           boxShadow: '0 0 0 4px rgba(0,0,0,0.03)',
+          animation: arriveDelay != null ? `fs-arrive 0.5s ease-out ${arriveDelay}s both` : undefined,
         }}
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
@@ -1421,16 +1428,35 @@ function WalletNode({
   )
 }
 
-// The connector between two wallet nodes: a vertical tick under the node dot +
-// the on-chain action that moved the value.
-function FlowStep({ action, state }: { action: string; state: 'done' | 'refused' }) {
+// The connector between two wallet nodes: the line draws downward and (on a
+// release) a glowing token rides it, so the value is seen to move. `delay`
+// sequences the two steps so deposit then release play in order.
+function FlowStep({ action, state, delay = 0 }: { action: string; state: 'done' | 'refused'; delay?: number }) {
   const color = state === 'refused' ? 'var(--blocked)' : 'var(--cleared)'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 11, height: 30 }}>
-      <span style={{ width: 11, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <span style={{ width: 1.5, height: '100%', background: color, opacity: 0.6 }} />
+    <div style={{ display: 'flex', alignItems: 'stretch', gap: 11, height: 34 }}>
+      <span style={{ width: 11, position: 'relative', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+        {/* faint base rail */}
+        <span style={{ position: 'absolute', top: 0, bottom: 0, width: 1.5, background: 'var(--border)' }} />
+        {/* the value drawing down the rail */}
+        <span style={{ position: 'absolute', top: 0, bottom: 0, width: 1.5, background: color, opacity: 0.85, transformOrigin: 'top center', animation: `fs-flow-fill 0.55s ease-out ${delay}s both` }} />
+        {/* the glowing token that moves (only when value actually moves) */}
+        {state === 'done' && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 0,
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: color,
+              boxShadow: `0 0 7px ${color}`,
+              animation: `fs-flow-travel 0.7s ease-out ${delay}s both`,
+            }}
+          />
+        )}
       </span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, color, letterSpacing: '0.02em' }}>
+      <span style={{ alignSelf: 'center', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, color, letterSpacing: '0.02em', animation: `fs-fade-in 0.4s ease-out ${delay + 0.15}s both` }}>
         <span aria-hidden="true">{state === 'refused' ? '✕' : '↓'}</span>
         <span>{action}</span>
       </span>
@@ -1586,6 +1612,27 @@ function Styles() {
       @keyframes fs-blink {
         0%, 100% { opacity: 1; }
         50%      { opacity: 0; }
+      }
+      /* Money-flow: the connector line draws downward as the value moves. */
+      @keyframes fs-flow-fill {
+        from { transform: scaleY(0); }
+        to   { transform: scaleY(1); }
+      }
+      /* A glowing token rides the connector from one wallet to the next. */
+      @keyframes fs-flow-travel {
+        0%   { transform: translateY(0);    opacity: 0; }
+        20%  { opacity: 1; }
+        80%  { opacity: 1; }
+        100% { transform: translateY(27px); opacity: 0; }
+      }
+      /* A wallet node pops when the value arrives. */
+      @keyframes fs-arrive {
+        0%, 100% { transform: scale(1); }
+        45%      { transform: scale(1.5); }
+      }
+      @keyframes fs-fade-in {
+        from { opacity: 0; }
+        to   { opacity: 1; }
       }
       .fs-chain-link:hover { color: #a50f1a; }
       .fs-chain-link:hover .fs-chain-link-text { text-decoration: underline; }
