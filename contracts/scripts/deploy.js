@@ -29,6 +29,10 @@ async function main() {
   const faucetAmount = ethers.parseUnits('1000000', USDC_DECIMALS)
   await (await usdc.mint(deployer.address, faucetAmount)).wait()
 
+  // Pre-approve the escrow to pull the buyer's stablecoin, so per-settlement
+  // there is no approve tx — keeps live settlement fast and serverless-friendly.
+  await (await usdc.approve(escrowAddress, ethers.MaxUint256)).wait()
+
   console.log('\n──────────────────────────────────────────────')
   console.log(`USDC_ADDRESS=${usdcAddress}`)
   console.log(`ESCROW_ADDRESS=${escrowAddress}`)

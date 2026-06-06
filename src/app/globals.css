@@ -69,10 +69,8 @@
   --arc-core: var(--accent);
   --arc-glow: rgba(193,18,31,0.20);
 
-  /* ══ Fonts ══ */
-  --font-ui:   'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-hero: 'Chakra Petch', sans-serif;
+  /* ══ Fonts: provided by next/font (Inter · JetBrains Mono · Space Grotesk)
+     via the <html> className in layout.tsx — do not hardcode here ══ */
 
   /* ══ Panels — sharp corners ══ */
   --panel-border: 1px solid var(--border);

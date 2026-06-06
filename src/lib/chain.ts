@@ -11,6 +11,7 @@ import {
   Contract,
   parseUnits,
   encodeBytes32String,
+  MaxUint256,
 } from 'ethers'
 import {
   TRADE_ESCROW_ABI,
@@ -115,12 +116,15 @@ async function settleOnce(
     // same nonce to two rapid sequential txs ("nonce too low").
     let nonce = await provider.getTransactionCount(buyerAddress, 'latest')
 
-    // 1) Ensure the buyer holds enough stablecoin, then approve the escrow.
-    const balance: bigint = await usdc.balanceOf(buyerAddress)
-    if (balance < amount) {
-      await (await usdc.mint(buyerAddress, amount - balance, { nonce: nonce++ })).wait()
+    // 1) Ensure the escrow is approved to pull the stablecoin. Pre-approved at
+    //    deploy; approve MAX once here only as a safety net (so only the first
+    //    settlement on a fresh deployment ever pays an approve tx).
+    const allowance: bigint = await usdc.allowance(buyerAddress, escrowAddress)
+    if (allowance < amount) {
+      const bal: bigint = await usdc.balanceOf(buyerAddress)
+      if (bal < amount) await (await usdc.mint(buyerAddress, amount, { nonce: nonce++ })).wait()
+      await (await usdc.approve(escrowAddress, MaxUint256, { nonce: nonce++ })).wait()
     }
-    await (await usdc.approve(escrowAddress, amount, { nonce: nonce++ })).wait()
 
     // 2) Lock the trade documents + funds into escrow as the buyer.
     //    Make the on-chain ref unique per run so repeated demos don't collide
@@ -128,22 +132,25 @@ async function settleOnce(
     const refStr = `${scenario.invoice.invoiceRef}.${Date.now().toString(36)}`.slice(0, 31)
     const invoiceRef = encodeBytes32String(refStr)
     const hsCode = encodeBytes32String(scenario.invoice.hsCode)
-    await (await escrow.deposit(
+    // 3) Submit deposit, then settle, back-to-back with explicit gas. We do NOT
+    //    await confirmations: nonce ordering guarantees the deposit executes
+    //    before the settle on-chain, and the Etherscan link is live immediately
+    //    (pending → confirmed). Explicit gasLimit skips estimateGas, which would
+    //    revert for the settle tx since its passport isn't mined yet.
+    await escrow.deposit(
       invoiceRef,
       hsCode,
       scenario.invoice.declaredValue,
       scenario.invoice.quantity,
       SUPPLIER_ADDRESS,
       amount,
-      { nonce: nonce++ }
-    )).wait()
+      { nonce: nonce++, gasLimit: 300000 }
+    )
 
-    // 3) Settle according to the verdict, acting as the compliance oracle.
     const settleTx =
       verdict === 'CLEAR'
-        ? await escrow.approveAndRelease(invoiceRef, scenario.fixtureResult.riskScore, { nonce: nonce++ })
-        : await escrow.reject(invoiceRef, scenario.fixtureResult.flags[0] ?? 'compliance block', { nonce: nonce++ })
-    await settleTx.wait()
+        ? await escrow.approveAndRelease(invoiceRef, scenario.fixtureResult.riskScore, { nonce: nonce++, gasLimit: 200000 })
+        : await escrow.reject(invoiceRef, scenario.fixtureResult.flags[0] ?? 'compliance block', { nonce: nonce++, gasLimit: 200000 })
 
     const hash: string = settleTx.hash
     const status: 'SETTLED' | 'BLOCKED' = verdict === 'CLEAR' ? 'SETTLED' : 'BLOCKED'

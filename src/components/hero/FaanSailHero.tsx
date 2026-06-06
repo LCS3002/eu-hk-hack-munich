@@ -28,7 +28,6 @@ const CREDENTIALS = [
 const CORRIDOR = [
   { name: 'LAGOS',     sub: 'APAPA PORT',        coord: '6.45°N   3.38°E',   tag: 'ORIGIN',    lat: 6.45,  lon: 3.38   },
   { name: 'HONG KONG', sub: 'SETTLEMENT RAIL',   coord: '22.30°N  114.17°E', tag: 'CLEARING',  lat: 22.30, lon: 114.17 },
-  { name: 'SHENZHEN',  sub: 'YANTIAN TERMINAL',  coord: '22.48°N  113.91°E', tag: 'BENEFICIARY', lat: 22.48, lon: 113.91 },
 ] as const
 
 // ── Geo helpers ───────────────────────────────────────────────────────────────
@@ -363,21 +362,25 @@ export default function FaanSailHero({ onEnter }: { onEnter: () => void }) {
         >
           <div className="fs-eyebrow">
             <span className="fs-eyebrow-rule" />
-            PAYMENT INFRASTRUCTURE · CROSS-BORDER TRADE
+            PAYMENT INFRASTRUCTURE · THE HONG KONG CORRIDOR
           </div>
 
-          <h1 className="fs-wordmark">FAANSAIL</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px, 1.6vw, 22px)' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="FaanSail" style={{ display: 'block', height: 'clamp(56px, 8.6vw, 110px)', width: 'auto', flexShrink: 0 }} />
+            <h1 className="fs-wordmark">FAANSAIL</h1>
+          </div>
 
           <h2 className="fs-headline">
-            Mitigate liquidity and compliance risk on the{' '}
-            <span className="fs-headline-accent">Africa&ndash;China</span> corridor.
+            Mitigate liquidity and compliance risk across the{' '}
+            <span className="fs-headline-accent">Hong Kong</span> settlement corridor.
           </h2>
 
           <p className="fs-sub">
             An AI gate verifies the trade (invoice vs bill of lading), settlement
-            clears in seconds on a stablecoin rail, and every ledger reconciles
-            itself &mdash; routed through Hong Kong. No trapped capital, no manual
-            reconciliation, no bad trade slipping through.
+            clears in seconds on the regulated stablecoin rail Hong Kong just
+            licensed, and every ledger reconciles itself. Proven live on the
+            Africa&ndash;China corridor &mdash; the hardest one.
           </p>
 
           <div className="fs-creds">
@@ -456,15 +459,14 @@ export default function FaanSailHero({ onEnter }: { onEnter: () => void }) {
 
         /* ── Wordmark ── */
         .fs-wordmark {
-          font-family: var(--font-hero, 'Chakra Petch', sans-serif);
+          font-family: var(--font-hero, 'Space Grotesk', system-ui, sans-serif);
           font-size: clamp(56px, 9vw, 112px);
           font-weight: 700;
           letter-spacing: -0.03em;
           line-height: 0.92;
           color: #1a1a1a;
           margin: 0;
-          transform: skewX(-4deg);
-          transform-origin: left;
+          /* upright wordmark — no skew (clean neobank look) */
         }
 
         /* ── Headline ── */
