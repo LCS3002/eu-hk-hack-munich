@@ -553,23 +553,15 @@ export default function JourneyConsole({
   scenario: TradeScenario | null
 }) {
   const [phase, setPhase] = useState<Phase>('idle')
-  const [reasoning, setReasoning] = useState('')
   const [result, setResult] = useState<ProofOfTradeResult | null>(null)
   const [tx, setTx] = useState<TxInfo | null>(null)
   const [settleSecs, setSettleSecs] = useState<number | null>(null)
   const [confirmedBlock, setConfirmedBlock] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const reasoningRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const startedForRef = useRef<string | null>(null)
   const runStartRef = useRef<number | null>(null)
-
-  // Auto-scroll the live-reasoning feed as tokens stream in.
-  useEffect(() => {
-    if (reasoningRef.current)
-      reasoningRef.current.scrollTop = reasoningRef.current.scrollHeight
-  }, [reasoning])
 
   // On-chain finality: once a real Sepolia tx lands, poll its receipt and surface
   // the block it mined in ("Confirmed on-chain · block N"). Best-effort — a failed
@@ -606,7 +598,6 @@ export default function JourneyConsole({
       startedForRef.current = null
       runStartRef.current = null
       setPhase('idle')
-      setReasoning('')
       setResult(null)
       setTx(null)
       setSettleSecs(null)
@@ -623,7 +614,6 @@ export default function JourneyConsole({
 
   const runVerify = async (id: string) => {
     runStartRef.current = Date.now()
-    setReasoning('')
     setResult(null)
     setTx(null)
     setSettleSecs(null)
@@ -679,8 +669,7 @@ export default function JourneyConsole({
     switch (evt.type) {
       case 'text':
         if (evt.text) {
-          setReasoning((prev) => prev + evt.text)
-          // First reasoning token → pulse has reached the HK gate region.
+          // First token from the gate → it's now actively verifying.
           setPhase((p) => (p === 'depart' ? 'verifying' : p))
         }
         break
@@ -752,13 +741,6 @@ export default function JourneyConsole({
       ? 'All cross-document checks passed'
       : result.flags[0] ?? failedChecks[0]?.detail ?? 'Cross-document checks failed'
     : null
-
-  // Last 5 non-empty reasoning lines for the small fading live stream.
-  const reasoningLines = reasoning
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .slice(-5)
 
   return (
     <div
@@ -931,8 +913,6 @@ export default function JourneyConsole({
                 phase={phase}
                 result={result}
                 summaryLine={summaryLine}
-                reasoningLines={reasoningLines}
-                reasoningRef={reasoningRef}
                 error={error}
               />
             </Section>
@@ -1053,15 +1033,11 @@ function VerdictBlock({
   phase,
   result,
   summaryLine,
-  reasoningLines,
-  reasoningRef,
   error,
 }: {
   phase: Phase
   result: ProofOfTradeResult | null
   summaryLine: string | null
-  reasoningLines: string[]
-  reasoningRef: React.RefObject<HTMLDivElement | null>
   error: string | null
 }) {
   const verifying = phase === 'verifying' || phase === 'depart'
@@ -1148,66 +1124,23 @@ function VerdictBlock({
     )
   }
 
-  // Verifying — small live-reasoning stream (≤5 fading mono lines, auto-scroll).
+  // Verifying — a calm one-line status, NOT a chat. The verdict is what matters
+  // and it lands in a couple of seconds; the money flow below is the focus.
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: 'fs-pulse 1.3s ease-in-out infinite' }} />
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)' }}>
-          {verifying ? 'Analyzing trade documents' : 'Standby'}
-        </span>
-      </div>
-      <div
-        ref={reasoningRef}
-        style={{
-          maxHeight: 96,
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3,
-          paddingLeft: 15,
-          borderLeft: '1px solid var(--border)',
-        }}
-      >
-        {reasoningLines.length === 0 ? (
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', lineHeight: 1.6 }}>
-            Reading invoice against bill of lading…
-          </span>
-        ) : (
-          reasoningLines.map((line, i) => {
-            const isLast = i === reasoningLines.length - 1
-            // Older lines fade out; the newest is fully legible.
-            const opacity = 0.32 + (0.68 * (i + 1)) / reasoningLines.length
-            return (
-              <span
-                key={`${i}-${line.slice(0, 8)}`}
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 11,
-                  lineHeight: 1.55,
-                  color: 'var(--text-2)',
-                  opacity,
-                }}
-              >
-                {line}
-                {isLast && (
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      width: 5,
-                      height: 11,
-                      marginLeft: 3,
-                      background: 'var(--accent)',
-                      verticalAlign: 'text-bottom',
-                      animation: 'fs-blink 0.8s step-end infinite',
-                    }}
-                  />
-                )}
-              </span>
-            )
-          })
-        )}
-      </div>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '13px 16px',
+        background: 'var(--bg-sunken)',
+        borderLeft: '3px solid var(--accent)',
+      }}
+    >
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', animation: 'fs-pulse 1.3s ease-in-out infinite', flexShrink: 0 }} />
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: 'var(--text-2)' }}>
+        {verifying ? 'Verifying invoice against bill of lading…' : 'Standby'}
+      </span>
     </div>
   )
 }
@@ -1339,15 +1272,16 @@ function SettlementBlock({
           title={tx.hash}
           href={txUrl}
           chain={tx.chain}
+          hint="the permanent, public on-chain record"
           mono
         />
         {USDC && (
           <ChainRow
-            label="Stablecoin asset"
+            label="Stablecoin (the money)"
             value={`MockUSDC · ${truncAddr(USDC)}`}
             title={USDC}
             href={`${EXPLORER}/address/${USDC}`}
-            hint="the token that moved"
+            hint="digital test-dollars — the asset that actually moved"
             mono
           />
         )}
@@ -1363,32 +1297,39 @@ function SettlementBlock({
 function WalletFlow({ amount, released }: { amount: string; released: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Plain-language legend so a non-crypto viewer knows what these are. */}
+      <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10.5, lineHeight: 1.5, color: 'var(--text-3)', marginBottom: 12 }}>
+        Real accounts &amp; contracts on the Sepolia test blockchain — click any to verify on Etherscan.
+      </span>
       <WalletNode
         tone="var(--accent)"
-        role="Buyer · escrow funder"
+        kind="Wallet"
+        role="Buyer"
         addr={BUYER}
-        hint="deposits the stablecoin into escrow"
+        hint="The importer's on-chain account — funds the payment"
         arriveDelay={0}
       />
-      <FlowStep action={`deposit${amount ? `  ${amount}` : ''}`} state="done" delay={0.2} />
+      <FlowStep action={`deposits${amount ? ` ${amount}` : ''} into escrow`} state="done" delay={0.2} />
       <WalletNode
         tone="var(--text-1)"
-        role="TradeEscrow · holds the funds"
+        kind="Smart contract"
+        role="TradeEscrow"
         addr={ESCROW}
-        hint="releases only on an AI-compliance pass"
+        hint="Code that holds the money and releases it only if the AI clears the trade"
         square
         arriveDelay={0.7}
       />
       <FlowStep
-        action="approveAndRelease() · AI-gated"
+        action={released ? 'approveAndRelease() — AI-cleared' : 'reject() — AI-blocked'}
         state={released ? 'done' : 'refused'}
         delay={0.95}
       />
       <WalletNode
         tone={released ? 'var(--cleared)' : 'var(--text-3)'}
-        role={released ? 'Supplier · paid' : 'Supplier · not paid'}
+        kind="Wallet"
+        role={released ? 'Supplier — paid' : 'Supplier — not paid'}
         addr={SUPPLIER}
-        hint={released ? 'received the stablecoin' : 'no value released — held in escrow'}
+        hint={released ? "The exporter's on-chain account — received the money" : 'No money released — held in the escrow contract'}
         dim={!released}
         arriveDelay={released ? 1.5 : undefined}
       />
@@ -1400,6 +1341,7 @@ function WalletFlow({ amount, released }: { amount: string; released: boolean })
 function WalletNode({
   tone,
   role,
+  kind,
   addr,
   hint,
   square,
@@ -1408,6 +1350,7 @@ function WalletNode({
 }: {
   tone: string
   role: string
+  kind?: string
   addr: string
   hint: string
   square?: boolean
@@ -1430,8 +1373,15 @@ function WalletNode({
         }}
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)' }}>
-          {role}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-2)' }}>
+            {role}
+          </span>
+          {kind && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 7.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)', border: '1px solid var(--border)', borderRadius: 3, padding: '1px 5px' }}>
+              {kind}
+            </span>
+          )}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
           <span

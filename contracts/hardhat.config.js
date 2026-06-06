@@ -14,4 +14,9 @@ module.exports = {
       accounts: process.env.SEPOLIA_PRIVATE_KEY ? [process.env.SEPOLIA_PRIVATE_KEY] : [],
     },
   },
+  // `npx hardhat verify --network sepolia <addr> [args]` publishes source to
+  // Etherscan so the deployed escrow + token are inspectable on-chain.
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY || '',
+  },
 }

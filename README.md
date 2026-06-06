@@ -76,14 +76,20 @@ npm --prefix contracts run deploy:sepolia
 - **Simulated (clearly labelled):** the fiat on/off ramps, and the settlement asset is mock USDC on testnet. The architecture is identical to a production deployment on a regulated stablecoin rail.
 
 ## Live on Sepolia
-Every settlement in the demo is a **real transaction on the Sepolia public testnet** — and the console links each actor straight to Etherscan.
+Every settlement in the demo is a **real transaction on the Sepolia public testnet**, the contract source is **verified on Etherscan**, and the console links each actor straight there.
 
 | Contract / wallet | On-chain role | Address |
 |---|---|---|
-| `TradeEscrow` | holds the funds, releases only on an AI pass | [`0x9527…540E`](https://sepolia.etherscan.io/address/0x9527bAc8dDf0A3d3B42Af0F0C11F48fe1253540E) |
-| `MockUSDC` | the stablecoin that actually moves | [`0x4dA6…7be2`](https://sepolia.etherscan.io/address/0x4dA689E28D7C99C624a7e4280C06e1fF59937be2) |
-| Oracle / buyer | funds the escrow, enforces the verdict | [`0xd2c3…8cb0`](https://sepolia.etherscan.io/address/0xd2c3e783655b8050256f3c127cc258af91c68cb0) |
-| Supplier | receives the stablecoin on `CLEAR` | [`0x7099…79C8`](https://sepolia.etherscan.io/address/0x70997970C51812dc3A010C7d01b50e0d17dc79C8) |
+| `TradeEscrow` (smart contract) | holds the funds, releases only on an AI pass — **[verified source ✓](https://sepolia.etherscan.io/address/0x9527bAc8dDf0A3d3B42Af0F0C11F48fe1253540E#code)** | [`0x9527…540E`](https://sepolia.etherscan.io/address/0x9527bAc8dDf0A3d3B42Af0F0C11F48fe1253540E) |
+| `MockUSDC` (token) | the stablecoin that actually moves — **[verified source ✓](https://sepolia.etherscan.io/address/0x4dA689E28D7C99C624a7e4280C06e1fF59937be2#code)** | [`0x4dA6…7be2`](https://sepolia.etherscan.io/address/0x4dA689E28D7C99C624a7e4280C06e1fF59937be2) |
+| Oracle / buyer (wallet) | funds the escrow, enforces the verdict | [`0xd2c3…8cb0`](https://sepolia.etherscan.io/address/0xd2c3e783655b8050256f3c127cc258af91c68cb0) |
+| Supplier (wallet) | receives the stablecoin on `CLEAR` | [`0x7099…79C8`](https://sepolia.etherscan.io/address/0x70997970C51812dc3A010C7d01b50e0d17dc79C8) |
+
+**What each piece is, in plain terms:**
+- **Wallet (address)** — an account on the blockchain, like an IBAN. The buyer and supplier each have one.
+- **Smart contract** — self-executing code. Our `TradeEscrow` holds the money and *cannot* release it unless the AI clears the trade — that rule is enforced by the code, not by us.
+- **Stablecoin** — `MockUSDC`, a digital test-dollar; the asset that actually moves between the wallets.
+- **Transaction** — the permanent, public record of the settlement; anyone can verify it on Etherscan.
 
 ## Tests
 ```bash
