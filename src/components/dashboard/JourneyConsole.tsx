@@ -822,6 +822,7 @@ export default function JourneyConsole({
                 </div>
 
                 <Section label="AI Compliance Gate">
+                  <DocumentPreview scenario={scenario} uploadedDocs={uploadedDocs ?? null} />
                   <VerdictBlock phase={phase} result={result} summaryLine={summaryLine} error={error} />
                 </Section>
 
@@ -997,6 +998,259 @@ function IdleCenter({ onUpload }: { onUpload?: () => void }) {
       >
         Watch the value cross the Hong Kong corridor
       </span>
+    </div>
+  )
+}
+
+// ─── Document preview (key fields, side-by-side, mismatches highlighted) ──
+function DocumentPreview({
+  scenario,
+  uploadedDocs,
+}: {
+  scenario: TradeScenario | null
+  uploadedDocs: UploadedDocs | null
+}) {
+  if (!scenario && !uploadedDocs) return null
+
+  // Upload flow — show filenames only (no structured fields to compare yet)
+  if (uploadedDocs && !scenario) {
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 8,
+          marginBottom: 12,
+        }}
+      >
+        {[
+          { label: 'Invoice', doc: uploadedDocs.invoice },
+          { label: 'Bill of Lading', doc: uploadedDocs.billOfLading },
+        ].map(({ label, doc }) => (
+          <div
+            key={label}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 13px',
+              background: 'var(--bg-sunken)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <span style={{ fontSize: 16, flexShrink: 0 }}>
+              {doc.mediaType === 'image' ? '🖼' : '📄'}
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 7.5,
+                  fontWeight: 700,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  color: 'var(--accent)',
+                }}
+              >
+                {label}
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10.5,
+                  color: 'var(--text-1)',
+                  fontWeight: 600,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {doc.name}
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 8.5,
+                  color: 'var(--text-3)',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                {doc.mediaType === 'image' ? 'Claude Vision' : 'Text extraction'}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (!scenario) return null
+
+  const inv = scenario.invoice
+  const bol = scenario.billOfLading
+  const hist = scenario.supplierHistory
+
+  // Mismatch detection
+  const qtyMismatch = inv.quantity !== bol.quantity
+  const valueMismatch = hist.avgDeclaredValue > 0 &&
+    inv.declaredValue > hist.avgDeclaredValue * 1.2
+  const beneficiaryMismatch = hist.knownBeneficiaryAccount !== inv.beneficiaryAccount
+  const hsMatch = inv.hsCode === bol.hsCode
+  // Ship date vs payment terms: extract "ship on/before YYYY-MM-DD" from paymentTerms
+  const shipDeadlineMatch = inv.paymentTerms.match(/(\d{4}-\d{2}-\d{2})/)
+  const shipDeadline = shipDeadlineMatch?.[1]
+  const shipDateLate = shipDeadline ? bol.shipDate > shipDeadline : false
+
+  type FieldRow = { key: string; invVal: string; bolVal: string; mismatch: boolean }
+
+  const rows: FieldRow[] = [
+    {
+      key: 'Reference',
+      invVal: inv.invoiceRef,
+      bolVal: bol.blRef,
+      mismatch: false,
+    },
+    {
+      key: 'Quantity',
+      invVal: `${inv.quantity.toLocaleString()} pcs`,
+      bolVal: `${bol.quantity.toLocaleString()} pcs`,
+      mismatch: qtyMismatch,
+    },
+    {
+      key: 'HS Code',
+      invVal: inv.hsCode,
+      bolVal: bol.hsCode,
+      mismatch: !hsMatch,
+    },
+    {
+      key: 'Declared Value',
+      invVal: `$${inv.declaredValue.toLocaleString()} (${inv.unitPrice}/unit)`,
+      bolVal: `Avg: $${hist.avgDeclaredValue.toLocaleString()}`,
+      mismatch: valueMismatch,
+    },
+    {
+      key: 'Beneficiary',
+      invVal: `${inv.beneficiaryAccount} · ${inv.beneficiaryBank}`,
+      bolVal: `Known: ${hist.knownBeneficiaryAccount}`,
+      mismatch: beneficiaryMismatch,
+    },
+    {
+      key: 'Ship Date',
+      invVal: `Deadline: ${shipDeadline ?? '—'}`,
+      bolVal: bol.shipDate,
+      mismatch: shipDateLate,
+    },
+  ]
+
+  const anyMismatch = rows.some((r) => r.mismatch)
+
+  return (
+    <div
+      style={{
+        marginBottom: 12,
+        border: '1px solid var(--border)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Column headers */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '120px 1fr 1fr',
+          background: 'var(--bg-sunken)',
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
+        <div style={{ padding: '7px 12px' }} />
+        {['Invoice', 'Bill of Lading'].map((h) => (
+          <div
+            key={h}
+            style={{
+              padding: '7px 12px',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 7.5,
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: 'var(--accent)',
+              borderLeft: '1px solid var(--border)',
+            }}
+          >
+            {h}
+          </div>
+        ))}
+      </div>
+
+      {/* Field rows */}
+      {rows.map((row, i) => {
+        const red = 'var(--blocked)'
+        const bg = row.mismatch ? 'rgba(193,18,31,0.04)' : 'transparent'
+        return (
+          <div
+            key={row.key}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '120px 1fr 1fr',
+              background: bg,
+              borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none',
+              transition: 'background 0.2s ease',
+            }}
+          >
+            <div
+              style={{
+                padding: '8px 12px',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 8.5,
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: row.mismatch ? red : 'var(--text-3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              {row.mismatch && (
+                <span style={{ color: red, fontSize: 10, lineHeight: 1 }}>✕</span>
+              )}
+              {row.key}
+            </div>
+            {[row.invVal, row.bolVal].map((val, ci) => (
+              <div
+                key={ci}
+                style={{
+                  padding: '8px 12px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10.5,
+                  color: row.mismatch ? red : 'var(--text-1)',
+                  fontWeight: row.mismatch ? 600 : 400,
+                  borderLeft: '1px solid var(--border)',
+                  lineHeight: 1.4,
+                }}
+              >
+                {val}
+              </div>
+            ))}
+          </div>
+        )
+      })}
+
+      {/* Summary footer */}
+      {anyMismatch && (
+        <div
+          style={{
+            padding: '6px 12px',
+            background: 'rgba(193,18,31,0.06)',
+            borderTop: '1px solid rgba(193,18,31,0.2)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 8.5,
+            color: 'var(--blocked)',
+            letterSpacing: '0.06em',
+          }}
+        >
+          {rows.filter((r) => r.mismatch).length} cross-document discrepanc{rows.filter((r) => r.mismatch).length > 1 ? 'ies' : 'y'} detected
+        </div>
+      )}
     </div>
   )
 }
