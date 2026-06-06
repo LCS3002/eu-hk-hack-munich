@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "chain:install": "npm install --prefix contracts",
+    "chain:compile": "npm run compile --prefix contracts",
+    "chain:test": "npm run test --prefix contracts",
+    "chain:node": "npm run node --prefix contracts",
+    "chain:deploy:local": "npm run deploy:local --prefix contracts",
+    "chain:deploy:sepolia": "npm run deploy:sepolia --prefix contracts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
