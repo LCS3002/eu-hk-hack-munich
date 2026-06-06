@@ -121,10 +121,17 @@ async function settleOnce(
     // 1) Ensure the escrow is approved to pull the stablecoin. Pre-approved at
     //    deploy; approve MAX once here only as a safety net (so only the first
     //    settlement on a fresh deployment ever pays an approve tx).
+    // Check balance and allowance INDEPENDENTLY. The escrow is pre-approved MAX,
+    // so allowance never drops — but the buyer's mUSDC balance drains ~amount per
+    // settle, so it must be topped up on its OWN trigger or deposit() reverts
+    // (mined-but-failed) and the passport is never written. Mint a big batch so
+    // we only pay this every ~20 settlements, not every time.
+    const bal: bigint = await usdc.balanceOf(buyerAddress)
+    if (bal < amount) {
+      await (await usdc.mint(buyerAddress, parseUnits('1000000', USDC_DECIMALS), { nonce: nonce++ })).wait()
+    }
     const allowance: bigint = await usdc.allowance(buyerAddress, escrowAddress)
     if (allowance < amount) {
-      const bal: bigint = await usdc.balanceOf(buyerAddress)
-      if (bal < amount) await (await usdc.mint(buyerAddress, amount, { nonce: nonce++ })).wait()
       await (await usdc.approve(escrowAddress, MaxUint256, { nonce: nonce++ })).wait()
     }
 
