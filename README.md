@@ -1,8 +1,36 @@
-# FaanSail ⛵
+<div align="center">
 
-> **Payment infrastructure that mitigates liquidity and compliance risk on the Africa–China trade corridor — via Hong Kong.**
+<img src="public/logo.png" alt="FaanSail" width="108" />
 
-FaanSail is the rail cross-border B2B fintechs run on. An **AI gate verifies the real trade** (invoice vs. bill of lading), **settlement clears in seconds** on a stablecoin rail, and **every ledger reconciles itself** from a single on-chain event. The bad trade is refused before a cent moves; the good one frees the capital that used to sit trapped for days.
+# FAANSAIL
+
+### Compliance-native settlement for the Hong Kong corridor
+
+**An AI gate verifies the *trade*, the escrow settles or *refuses* on-chain in seconds, and one event reconciles every ledger.**
+
+[![Next.js 15](https://img.shields.io/badge/Next.js_15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![Solidity 0.8](https://img.shields.io/badge/Solidity_0.8-363636?logo=solidity&logoColor=white)](https://soliditylang.org)
+[![Claude](https://img.shields.io/badge/Claude-proof--of--trade_gate-c1121f)](https://www.anthropic.com)
+[![Sepolia](https://img.shields.io/badge/Sepolia-verified_contracts_%E2%9C%93-15803d)](https://sepolia.etherscan.io/address/0x9527bAc8dDf0A3d3B42Af0F0C11F48fe1253540E#code)
+
+<br/>
+
+<img src="docs/console.png" alt="FaanSail settlement console — the Grasshopper-style money flow over the corridor globe" width="840" />
+
+</div>
+
+---
+
+## Why it's novel
+Payment rails move money and screen the **parties**. They never see the **trade**.
+
+FaanSail is **proof-of-trade-gated settlement** — a new primitive where the compliance verdict is a *precondition of settlement*, enforced on-chain and bound into the same event:
+
+- **It verifies the trade, not just the parties** — invoice vs. bill of lading, declared value vs. supplier history, beneficiary-account changes (the over-invoicing / trade-based money laundering that party-screening misses).
+- **It can say *no*.** The over-invoiced trade is **refused before a cent moves** — `release()` is `onlyOracle`-gated by the verdict. Most "AI compliance" tools *flag*; ours *acts*, atomically.
+- **Compliance + payment + audit collapse into one on-chain event** — buyer, supplier and regulator reconcile off the same `Settled` record. Zero breaks.
+
+The escrow itself is commodity Solidity; the novelty is the **fusion** — trade-legitimacy welded to settlement on a regulator-readable ledger — running **for real** on a public testnet, **built for the rail Hong Kong just licensed** (Stablecoins Ordinance · Project Ensemble).
 
 ## The problem
 Cross-border B2B settlement on the Africa↔China corridor is still **3–5 days at ~6.3% all-in**, and it leaks in three places at once:
