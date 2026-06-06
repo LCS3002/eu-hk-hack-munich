@@ -32,6 +32,7 @@ import type {
   ProofOfTradeResult,
   TradeScenario,
   PassportStatus,
+  UploadedDocs,
 } from '@/lib/types'
 
 // ─── On-chain context (client-readable env) ────────────────────────────────
@@ -548,9 +549,13 @@ function VoxelGlobe({
 export default function JourneyConsole({
   scenarioId,
   scenario,
+  uploadedDocs,
+  onUpload,
 }: {
   scenarioId: string | null
   scenario: TradeScenario | null
+  uploadedDocs?: UploadedDocs | null
+  onUpload?: () => void
 }) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [result, setResult] = useState<ProofOfTradeResult | null>(null)
@@ -608,11 +613,11 @@ export default function JourneyConsole({
     // New (or re-triggered) scenario → start a fresh settlement.
     if (startedForRef.current === scenarioId) return
     startedForRef.current = scenarioId
-    void runVerify(scenarioId)
+    void runVerify(scenarioId, uploadedDocs ?? null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scenarioId])
 
-  const runVerify = async (id: string) => {
+  const runVerify = async (id: string, docs: UploadedDocs | null) => {
     runStartRef.current = Date.now()
     setResult(null)
     setTx(null)
@@ -625,10 +630,14 @@ export default function JourneyConsole({
     abortRef.current = new AbortController()
 
     try {
+      const body = docs
+        ? JSON.stringify({ uploadedDocs: docs })
+        : JSON.stringify({ scenarioId: id })
+
       const res = await fetch('/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenarioId: id }),
+        body,
         signal: abortRef.current.signal,
       })
 
@@ -729,9 +738,13 @@ export default function JourneyConsole({
   // For a blocked run, the bright/lit arc must stop at the gate, not glow green.
   const pulseBlocked = blocked
 
-  const buyerName = scenario?.invoice.buyerName ?? 'Importer'
-  const supplierName = scenario?.invoice.supplierName ?? 'Supplier'
-  const amount = scenario ? fmtAmount(scenario.amount) : null
+  const buyerName = uploadedDocs?.buyerName ?? scenario?.invoice.buyerName ?? 'Importer'
+  const supplierName = uploadedDocs?.supplierName ?? scenario?.invoice.supplierName ?? 'Supplier'
+  const amount = uploadedDocs?.amount
+    ? fmtAmount(uploadedDocs.amount)
+    : scenario
+    ? fmtAmount(scenario.amount)
+    : null
 
   const failedChecks = result?.checks.filter((c) => c.status === 'FAIL') ?? []
   // The single AI summary line: all-clear, or the top failed flag.
@@ -783,7 +796,7 @@ export default function JourneyConsole({
         }}
       >
         {idle ? (
-          <IdleCenter />
+          <IdleCenter onUpload={onUpload} />
         ) : (
           <div style={{ width: '100%', maxWidth: 860, padding: '26px 32px 18px', display: 'flex', flexDirection: 'column', gap: 22 }}>
             <PhaseRail statuses={phaseStatuses} />
@@ -801,7 +814,10 @@ export default function JourneyConsole({
                     <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 700, color: 'var(--text-1)', flexShrink: 0 }}>{amount}</span>
                   </div>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.04em', color: 'var(--text-3)' }}>
-                    Lagos → Shenzhen{scenario?.invoice.invoiceRef ? ` · ${scenario.invoice.invoiceRef}` : ''}{scenario?.invoice.hsCode ? ` · HS ${scenario.invoice.hsCode}` : ''}
+                    {uploadedDocs
+                      ? `${uploadedDocs.invoice.name} · ${uploadedDocs.billOfLading.name}`
+                      : `Lagos → Shenzhen${scenario?.invoice.invoiceRef ? ` · ${scenario.invoice.invoiceRef}` : ''}${scenario?.invoice.hsCode ? ` · HS ${scenario.invoice.hsCode}` : ''}`
+                    }
                   </span>
                 </div>
 
@@ -858,7 +874,18 @@ export default function JourneyConsole({
 }
 
 // ─── Idle panel ────────────────────────────────────────────────────────────
-function IdleCenter() {
+function IdleCenter({ onUpload }: { onUpload?: () => void }) {
+  const [dragging, setDragging] = useState(false)
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    // If files are dropped directly onto the idle panel, open the upload modal
+    if (e.dataTransfer.files.length > 0 && onUpload) {
+      onUpload()
+    }
+  }
+
   return (
     <div
       style={{
@@ -909,6 +936,55 @@ function IdleCenter() {
         clears on-chain in seconds, and the buyer, supplier and regulator
         reconcile off one event.
       </span>
+
+      {/* Upload drop zone */}
+      {onUpload && (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          onClick={onUpload}
+          style={{
+            marginTop: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
+            padding: '18px 32px',
+            border: `1.5px dashed ${dragging ? '#c1121f' : 'rgba(0,0,0,0.15)'}`,
+            background: dragging ? 'rgba(193,18,31,0.04)' : 'var(--bg-surface)',
+            cursor: 'pointer',
+            transition: 'border-color 0.18s ease, background 0.18s ease',
+            minWidth: 280,
+          }}
+        >
+          <span style={{ fontSize: 22, lineHeight: 1 }}>↑</span>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: '#c1121f',
+            }}
+          >
+            Upload your trade documents
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 11.5,
+              color: 'var(--text-3)',
+              lineHeight: 1.5,
+              maxWidth: 220,
+            }}
+          >
+            Drop invoice + bill of lading here, or click to upload. PDF, PNG, JPG, TXT.
+          </span>
+        </div>
+      )}
+
       <div style={{ height: 1, width: 64, background: 'var(--border-strong)', margin: '4px 0' }} />
       <span
         style={{

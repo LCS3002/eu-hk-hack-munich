@@ -73,6 +73,23 @@ export interface TradeScenario {
   fixtureResult: ProofOfTradeResult
 }
 
+// ─── Uploaded trade documents (raw, for the upload flow) ───────────────
+export type DocMediaType = 'text' | 'image'
+
+export interface UploadedDoc {
+  content: string       // plain text OR base64 data URL
+  mediaType: DocMediaType
+  name: string          // original filename
+}
+
+export interface UploadedDocs {
+  invoice: UploadedDoc
+  billOfLading: UploadedDoc
+  amount?: number       // optional declared value override
+  buyerName?: string
+  supplierName?: string
+}
+
 // ─── SSE stream: api/verify → VerdictStream ─────────────────────────────
 export type VerifyEvent =
   | { type: 'text'; text: string }                  // streamed reasoning token

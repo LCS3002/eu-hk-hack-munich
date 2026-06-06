@@ -15,6 +15,7 @@ import type {
   ProofOfTradeResult,
   TradeScenario,
   Verdict,
+  UploadedDocs,
 } from '@/lib/types'
 
 const VERDICT_MARKER = 'VERDICT_JSON:'
@@ -85,22 +86,23 @@ function parseVerdict(
 export async function POST(req: Request) {
   const encoder = new TextEncoder()
 
-  // Resolve the scenario up front (default to the clean trade).
+  // Parse the body — either { scenarioId } or { uploadedDocs }.
   let scenarioId: string | undefined
+  let uploadedDocs: UploadedDocs | undefined
   try {
-    const body = (await req.json()) as { scenarioId?: string }
+    const body = (await req.json()) as { scenarioId?: string; uploadedDocs?: UploadedDocs }
     scenarioId = body?.scenarioId
+    uploadedDocs = body?.uploadedDocs
   } catch {
     scenarioId = undefined
   }
+
+  // Resolve the scenario (used as fallback + for on-chain settlement metadata).
   const scenario: TradeScenario =
     (scenarioId && SCENARIOS[scenarioId]) || CLEAN_TRADE
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      // If the client disconnects mid-stream (e.g. a refresh during the on-chain
-      // settle), enqueue throws "Controller is already closed". Swallow it and
-      // latch `closed` so later stages quietly no-op instead of erroring.
       let closed = false
       const emit = (event: VerifyEvent) => {
         if (closed) return
@@ -115,18 +117,17 @@ export async function POST(req: Request) {
 
       // ── Stage 1: reasoning + verdict ────────────────────────────────────
       try {
-        // HARBOUR_-prefixed first so a stale system ANTHROPIC_API_KEY (which
-        // dotenv/Next will NOT override) can't shadow our .env value.
         const apiKey = process.env.HARBOUR_ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY
-        if (apiKey) {
+        if (apiKey && uploadedDocs) {
+          // Uploaded documents — use Claude Vision / text analysis on raw docs.
+          result = await streamWithUploadedDocs(apiKey, uploadedDocs, emit)
+        } else if (apiKey) {
           result = await streamWithAnthropic(apiKey, scenario, emit)
         } else {
           await streamFixtureReasoning(scenario.fixtureReasoning, emit)
           result = scenario.fixtureResult
         }
       } catch (err) {
-        // Reasoning stage failed — log why, then still stream the fixture
-        // reasoning so the demo never shows an empty panel.
         console.error('[verify] live reasoning failed, using fixture:', err)
         try {
           await streamFixtureReasoning(scenario.fixtureReasoning, emit)
@@ -154,7 +155,6 @@ export async function POST(req: Request) {
           explorerUrl: tx.explorerUrl,
         })
       } catch {
-        // settleOnChain already self-heals to a mock tx, but guard anyway.
         emit({
           type: 'tx',
           hash:
@@ -265,6 +265,126 @@ async function streamWithAnthropic(
 
   const parsed = parseVerdict(full)
   return buildResult(scenario, parsed)
+}
+
+/**
+ * Stream analysis of real uploaded trade documents (invoice + bill of lading).
+ * Images go through Claude Vision; text files go as plain text content.
+ * Falls back to a minimal fixture result on any parse failure.
+ */
+async function streamWithUploadedDocs(
+  apiKey: string,
+  docs: UploadedDocs,
+  emit: (event: VerifyEvent) => void
+): Promise<ProofOfTradeResult> {
+  const Anthropic = (await import('@anthropic-ai/sdk')).default
+  const client = new Anthropic({ apiKey })
+
+  // Build the message content — interleave text context with document content.
+  type ContentBlock =
+    | { type: 'text'; text: string }
+    | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+
+  const content: ContentBlock[] = []
+
+  content.push({
+    type: 'text',
+    text: `You are receiving two trade documents for cross-document compliance analysis. Please examine them carefully.
+
+${docs.buyerName ? `Buyer: ${docs.buyerName}` : ''}
+${docs.supplierName ? `Supplier: ${docs.supplierName}` : ''}
+${docs.amount ? `Declared settlement amount: USD ${docs.amount.toLocaleString()}` : ''}
+
+DOCUMENT 1 — INVOICE (${docs.invoice.name}):`,
+  })
+
+  if (docs.invoice.mediaType === 'image') {
+    const mimeType = docs.invoice.name.toLowerCase().endsWith('.png')
+      ? 'image/png'
+      : docs.invoice.name.toLowerCase().endsWith('.webp')
+      ? 'image/webp'
+      : 'image/jpeg'
+    content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: mimeType, data: docs.invoice.content },
+    })
+  } else {
+    content.push({ type: 'text', text: docs.invoice.content })
+  }
+
+  content.push({ type: 'text', text: `\nDOCUMENT 2 — BILL OF LADING (${docs.billOfLading.name}):` })
+
+  if (docs.billOfLading.mediaType === 'image') {
+    const mimeType = docs.billOfLading.name.toLowerCase().endsWith('.png')
+      ? 'image/png'
+      : docs.billOfLading.name.toLowerCase().endsWith('.webp')
+      ? 'image/webp'
+      : 'image/jpeg'
+    content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: mimeType, data: docs.billOfLading.content },
+    })
+  } else {
+    content.push({ type: 'text', text: docs.billOfLading.content })
+  }
+
+  const mStream = client.messages.stream({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1200,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: content as Parameters<typeof client.messages.stream>[0]['messages'][0]['content'] }],
+  })
+
+  let full = ''
+  let emittedLen = 0
+  let markerHit = false
+
+  const partialMarkerSuffix = (s: string): number => {
+    const max = Math.min(s.length, VERDICT_MARKER.length - 1)
+    for (let k = max; k > 0; k--) {
+      if (VERDICT_MARKER.startsWith(s.slice(s.length - k))) return k
+    }
+    return 0
+  }
+
+  for await (const event of mStream) {
+    if (
+      event.type === 'content_block_delta' &&
+      event.delta.type === 'text_delta'
+    ) {
+      full += event.delta.text
+      if (markerHit) continue
+
+      const markerIdx = full.indexOf(VERDICT_MARKER)
+      if (markerIdx >= 0) {
+        if (markerIdx > emittedLen) {
+          emit({ type: 'text', text: full.slice(emittedLen, markerIdx) })
+        }
+        emittedLen = markerIdx
+        markerHit = true
+        continue
+      }
+
+      const hold = partialMarkerSuffix(full)
+      const safeEnd = full.length - hold
+      if (safeEnd > emittedLen) {
+        emit({ type: 'text', text: full.slice(emittedLen, safeEnd) })
+        emittedLen = safeEnd
+      }
+    }
+  }
+
+  const parsed = parseVerdict(full)
+  if (!parsed) {
+    // Return a generic result if verdict parsing fails
+    return CLEAN_TRADE.fixtureResult
+  }
+  return {
+    verdict: parsed.verdict,
+    riskScore: parsed.riskScore,
+    flags: parsed.flags,
+    checks: [],  // No structured fixture checks for uploaded docs — AI provides prose only
+  }
 }
 
 /** No API key: replay the fixture reasoning in small chunks (Meridian-style). */

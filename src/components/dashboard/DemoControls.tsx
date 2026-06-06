@@ -11,6 +11,7 @@ import { CLEAN_TRADE, DIRTY_TRADE } from '@/lib/fixtures'
 interface DemoControlsProps {
   onRun: (scenarioId: string) => void
   onReset: () => void
+  onUpload: () => void
   activeId?: string | null
 }
 
@@ -39,7 +40,7 @@ const BUTTONS: TradeButton[] = [
   },
 ]
 
-export default function DemoControls({ onRun, onReset, activeId }: DemoControlsProps) {
+export default function DemoControls({ onRun, onReset, onUpload, activeId }: DemoControlsProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <style>{`
@@ -47,6 +48,8 @@ export default function DemoControls({ onRun, onReset, activeId }: DemoControlsP
         .fs-pill:hover { background: var(--bg-sunken); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
         .fs-reset { transition: color .18s ease, border-color .18s ease, transform .12s ease; }
         .fs-reset:hover { color: var(--text-1); border-color: var(--border-strong); transform: rotate(-40deg); }
+        .fs-upload { transition: border-color .18s ease, background .18s ease, color .18s ease, transform .12s ease; }
+        .fs-upload:hover { background: var(--accent); color: #fff; border-color: var(--accent); transform: translateY(-1px); }
       `}</style>
 
       <span
@@ -115,6 +118,34 @@ export default function DemoControls({ onRun, onReset, activeId }: DemoControlsP
           </button>
         )
       })}
+
+      {/* Upload your own trade docs */}
+      <button
+        className="fs-upload"
+        onClick={onUpload}
+        title="Upload your own invoice + bill of lading"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '6px 11px',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--accent)',
+          borderRadius: 7,
+          cursor: 'pointer',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: 'var(--accent)',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ fontSize: 12, lineHeight: 1 }}>↑</span>
+        Upload
+      </button>
 
       <button
         className="fs-reset"
