@@ -1,0 +1,366 @@
+openapi: 3.0.3
+info:
+  title: Harbour API
+  description: >
+    Harbour verifies cross-border trade before stablecoin settlement.
+    The AI compliance gate streams its reasoning over SSE, then settles
+    on-chain via MockUSDC + TradeEscrow. Clean trades are released to the
+    supplier; suspicious trades are blocked and funds remain in escrow.
+  version: 0.1.0
+
+servers:
+  - url: http://localhost:3000
+    description: Local dev server
+
+tags:
+  - name: Health
+  - name: Verify
+
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, service, timestamp]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  service:
+                    type: string
+                    example: Harbour backend
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/verify:
+    post:
+      tags: [Verify]
+      summary: Run AI proof-of-trade and settle on-chain
+      operationId: verify
+      description: >
+        Streams Server-Sent Events (SSE). The response is
+        `text/event-stream`; each line is a JSON-encoded `VerifyEvent`.
+        Events arrive in this order:
+
+        1. One or more `{type:"text"}` — streamed reasoning tokens from Claude
+           (or replayed fixture reasoning when no API key is set).
+        2. One `{type:"verdict"}` — structured compliance result.
+        3. One `{type:"tx"}` — on-chain settlement tx hash (real or mock).
+        4. One `{type:"done"}` — stream is complete.
+
+        Every stage is wrapped so the stream always reaches `done` even if
+        the AI or chain call fails.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scenarioId:
+                  type: string
+                  description: >
+                    ID of the demo scenario to run. Defaults to the clean
+                    trade (TRD-CLEAN) when omitted or unrecognised.
+                  enum: [TRD-CLEAN, TRD-DIRTY]
+                  example: TRD-CLEAN
+            examples:
+              clean:
+                summary: Clean trade
+                value:
+                  scenarioId: TRD-CLEAN
+              dirty:
+                summary: Over-invoiced / blocked trade
+                value:
+                  scenarioId: TRD-DIRTY
+      responses:
+        '200':
+          description: SSE stream of VerifyEvents
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: 'text/event-stream'
+            Cache-Control:
+              schema:
+                type: string
+                example: no-cache
+            Connection:
+              schema:
+                type: string
+                example: keep-alive
+          content:
+            text/event-stream:
+              schema:
+                description: >
+                  Each event is a `data: <JSON>\n\n` line.
+                  The JSON payload is one of the VerifyEvent variants below.
+                oneOf:
+                  - $ref: '#/components/schemas/TextEvent'
+                  - $ref: '#/components/schemas/VerdictEvent'
+                  - $ref: '#/components/schemas/TxEvent'
+                  - $ref: '#/components/schemas/ErrorEvent'
+                  - $ref: '#/components/schemas/DoneEvent'
+
+components:
+  schemas:
+
+    # ── Shared enums ──────────────────────────────────────────────────────────
+
+    Verdict:
+      type: string
+      enum: [CLEAR, BLOCK]
+      description: CLEAR = trade passes compliance; BLOCK = trade refused.
+
+    PassportStatus:
+      type: string
+      enum: [VERIFYING, CLEARED, SETTLED, BLOCKED]
+      description: >
+        Lifecycle state of the on-chain trade passport.
+        VERIFYING — funds locked, verdict pending.
+        CLEARED   — UI-only sub-state (never written on-chain).
+        SETTLED   — funds released to supplier.
+        BLOCKED   — settlement refused, funds held in escrow.
+
+    ChainMode:
+      type: string
+      enum: [local, sepolia, mock]
+      description: >
+        local   — Hardhat node at RPC_URL.
+        sepolia — Ethereum Sepolia testnet.
+        mock    — synthetic tx, no RPC call.
+
+    # ── Trade documents ───────────────────────────────────────────────────────
+
+    Invoice:
+      type: object
+      required:
+        - invoiceRef
+        - hsCode
+        - goodsDescription
+        - quantity
+        - unitPrice
+        - declaredValue
+        - buyerName
+        - buyerCountry
+        - supplierName
+        - supplierCountry
+        - beneficiaryBank
+        - beneficiaryAccount
+        - paymentTerms
+        - invoiceDate
+      properties:
+        invoiceRef:
+          type: string
+          example: INV-2026-0473
+        hsCode:
+          type: string
+          example: '8542.31'
+        goodsDescription:
+          type: string
+          example: Power management ICs (semiconductors)
+        quantity:
+          type: integer
+          example: 5000
+        unitPrice:
+          type: number
+          example: 9.2
+        declaredValue:
+          type: number
+          example: 46000
+        buyerName:
+          type: string
+          example: Adeyemi Components Ltd
+        buyerCountry:
+          type: string
+          example: Nigeria
+        supplierName:
+          type: string
+          example: Shenzhen Brightway Electronics Co.
+        supplierCountry:
+          type: string
+          example: China
+        beneficiaryBank:
+          type: string
+          example: HSBC Hong Kong
+        beneficiaryAccount:
+          type: string
+          example: '****8842'
+        paymentTerms:
+          type: string
+          example: 'Net 30 — ship on/before 2026-06-20'
+        invoiceDate:
+          type: string
+          format: date
+          example: '2026-06-05'
+
+    BillOfLading:
+      type: object
+      required:
+        - blRef
+        - vessel
+        - portOfLoading
+        - portOfDischarge
+        - hsCode
+        - goodsDescription
+        - quantity
+        - grossWeightKg
+        - shipDate
+        - consignee
+      properties:
+        blRef:
+          type: string
+          example: BL-SZ-558217
+        vessel:
+          type: string
+          example: OOCL SHENZHEN
+        portOfLoading:
+          type: string
+          example: 'Shekou, Shenzhen (CNSHK)'
+        portOfDischarge:
+          type: string
+          example: 'Apapa, Lagos (NGLOS)'
+        hsCode:
+          type: string
+          example: '8542.31'
+        goodsDescription:
+          type: string
+          example: Power management ICs (semiconductors)
+        quantity:
+          type: integer
+          example: 5000
+        grossWeightKg:
+          type: number
+          example: 1180
+        shipDate:
+          type: string
+          format: date
+          example: '2026-06-18'
+        consignee:
+          type: string
+          example: Adeyemi Components Ltd
+
+    SupplierHistory:
+      type: object
+      required: [knownBeneficiaryAccount, priorShipments, avgDeclaredValue]
+      properties:
+        knownBeneficiaryAccount:
+          type: string
+          example: '****8842'
+        priorShipments:
+          type: integer
+          example: 11
+        avgDeclaredValue:
+          type: number
+          example: 44200
+
+    # ── AI verdict ────────────────────────────────────────────────────────────
+
+    CrossDocCheck:
+      type: object
+      required: [name, status, detail]
+      properties:
+        name:
+          type: string
+          example: Quantity match
+        status:
+          type: string
+          enum: [PASS, FAIL]
+        detail:
+          type: string
+          example: 'Invoice 5,000 = BoL 5,000'
+
+    ProofOfTradeResult:
+      type: object
+      required: [verdict, riskScore, flags, checks]
+      properties:
+        verdict:
+          $ref: '#/components/schemas/Verdict'
+        riskScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: 0 = no risk, 100 = extreme risk
+          example: 8
+        flags:
+          type: array
+          items:
+            type: string
+          description: Human-readable risk flag strings (empty when clean)
+          example: []
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrossDocCheck'
+
+    # ── SSE event variants ────────────────────────────────────────────────────
+
+    TextEvent:
+      type: object
+      required: [type, text]
+      properties:
+        type:
+          type: string
+          enum: [text]
+        text:
+          type: string
+          description: One streamed reasoning token from Claude (or fixture replay)
+          example: 'Reading invoice INV-2026-0473 against bill of lading BL-SZ-558217.'
+
+    VerdictEvent:
+      type: object
+      required: [type, result]
+      properties:
+        type:
+          type: string
+          enum: [verdict]
+        result:
+          $ref: '#/components/schemas/ProofOfTradeResult'
+
+    TxEvent:
+      type: object
+      required: [type, hash, status, chain]
+      properties:
+        type:
+          type: string
+          enum: [tx]
+        hash:
+          type: string
+          description: 0x-prefixed 32-byte transaction hash (real or mock)
+          example: '0x3a2f1c8d...'
+        status:
+          $ref: '#/components/schemas/PassportStatus'
+        chain:
+          $ref: '#/components/schemas/ChainMode'
+        explorerUrl:
+          type: string
+          nullable: true
+          description: Etherscan link (Sepolia only; null for local/mock)
+          example: 'https://sepolia.etherscan.io/tx/0x3a2f...'
+
+    ErrorEvent:
+      type: object
+      required: [type, message]
+      properties:
+        type:
+          type: string
+          enum: [error]
+        message:
+          type: string
+
+    DoneEvent:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [done]
