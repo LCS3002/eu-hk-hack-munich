@@ -876,23 +876,23 @@ export default function JourneyConsole({
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: 30,
-              padding: '40px 40px 44px',
+              gap: 22,
+              padding: '30px 36px 38px',
             }}
           >
             {/* 1 ── Trade ─────────────────────────────────────────────── */}
-            <Section label="Trade">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <Row a={buyerName} aSub="Importer · Lagos" b={amount ?? ''} bSub="payable" />
-                <div style={{ height: 1, background: 'var(--border)' }} />
-                <Row
-                  a={supplierName}
-                  aSub="Supplier · Shenzhen"
-                  b={scenario?.invoice.hsCode ? `HS ${scenario.invoice.hsCode}` : ''}
-                  bSub={scenario?.invoice.invoiceRef ?? ''}
-                />
+            {/* Compact payment lane — who pays whom, how much. One glance. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+                <span style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>{buyerName}</span>
+                <span style={{ color: 'var(--text-3)', fontSize: 12, flexShrink: 0 }}>→</span>
+                <span style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>{supplierName}</span>
+                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: 'var(--text-1)', flexShrink: 0 }}>{amount}</span>
               </div>
-            </Section>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.04em', color: 'var(--text-3)' }}>
+                Lagos → Shenzhen{scenario?.invoice.invoiceRef ? ` · ${scenario.invoice.invoiceRef}` : ''}{scenario?.invoice.hsCode ? ` · HS ${scenario.invoice.hsCode}` : ''}
+              </span>
+            </div>
 
             {/* 2 ── AI verdict ────────────────────────────────────────── */}
             <Section label="AI Compliance Gate">
@@ -906,8 +906,8 @@ export default function JourneyConsole({
               />
             </Section>
 
-            {/* 3 ── On-chain settlement (the real, clickable proof) ───── */}
-            <Section label="On-chain settlement">
+            {/* 3 ── Settlement on the stablecoin rail (the real money flow) ─ */}
+            <Section label="Settlement · stablecoin rail">
               <SettlementBlock
                 phase={phase}
                 tx={tx}
@@ -1016,61 +1016,6 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   )
 }
 
-// ─── Two-line trade row ────────────────────────────────────────────────────
-function Row({ a, aSub, b, bSub }: { a: string; aSub: string; b: string; bSub: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
-        <span
-          style={{
-            fontFamily: 'var(--font-ui)',
-            fontSize: 14,
-            fontWeight: 600,
-            color: 'var(--text-1)',
-            lineHeight: 1.3,
-          }}
-        >
-          {a}
-        </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 9.5,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: 'var(--text-3)',
-          }}
-        >
-          {aSub}
-        </span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 14,
-            fontWeight: 700,
-            color: 'var(--text-1)',
-            lineHeight: 1.3,
-          }}
-        >
-          {b}
-        </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 9.5,
-            letterSpacing: '0.06em',
-            color: 'var(--text-3)',
-          }}
-        >
-          {bSub}
-        </span>
-      </div>
-    </div>
-  )
-}
-
 // ─── AI verdict block ──────────────────────────────────────────────────────
 function VerdictBlock({
   phase,
@@ -1100,8 +1045,8 @@ function VerdictBlock({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 16,
-            padding: '16px 18px',
+            gap: 14,
+            padding: '12px 16px',
             background: soft,
             borderTop: `1px solid ${color}`,
             borderRight: `1px solid ${color}`,
@@ -1112,7 +1057,7 @@ function VerdictBlock({
           <span
             style={{
               fontFamily: 'var(--font-hero)',
-              fontSize: 34,
+              fontSize: 24,
               fontWeight: 700,
               lineHeight: 1,
               letterSpacing: '0.03em',
@@ -1121,7 +1066,7 @@ function VerdictBlock({
           >
             {cleared ? 'CLEARED' : 'BLOCKED'}
           </span>
-          <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span
               style={{
                 fontFamily: 'var(--font-mono)',
@@ -1131,9 +1076,9 @@ function VerdictBlock({
                 color: 'var(--text-3)',
               }}
             >
-              Risk score
+              Risk
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, lineHeight: 1, color }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 700, lineHeight: 1, color }}>
               {result.riskScore}
             </span>
           </div>

@@ -16,7 +16,7 @@ import GlobeBackground from '@/components/hero/GlobeBackground'
    (--bg-base, --accent, --text-1/2/3, --font-hero/ui/mono) come from
    :root in globals.css — see src/lib/types.ts. */
 
-const REPO_URL = 'https://github.com'
+const REPO_URL = 'https://github.com/LCS3002/eu-hk-hack-munich'
 
 const CREDENTIALS = [
   'SETTLES IN SECONDS',
