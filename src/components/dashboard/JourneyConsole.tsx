@@ -1039,7 +1039,7 @@ function DocumentPreview({
             }}
           >
             <span style={{ fontSize: 16, flexShrink: 0 }}>
-              {doc.mediaType === 'image' ? '🖼' : '📄'}
+              {doc.mediaType === 'image' ? '🖼' : doc.mediaType === 'pdf' ? '📑' : '📄'}
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
               <span
@@ -1075,7 +1075,9 @@ function DocumentPreview({
                   letterSpacing: '0.06em',
                 }}
               >
-                {doc.mediaType === 'image' ? 'Claude Vision' : 'Text extraction'}
+                {doc.mediaType === 'image' ? 'Claude Vision'
+                  : doc.mediaType === 'pdf' ? 'Claude Document'
+                  : 'Text extraction'}
               </span>
             </div>
           </div>

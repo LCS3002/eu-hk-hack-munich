@@ -280,59 +280,51 @@ async function streamWithUploadedDocs(
   const Anthropic = (await import('@anthropic-ai/sdk')).default
   const client = new Anthropic({ apiKey })
 
-  // Build the message content — interleave text context with document content.
-  type ContentBlock =
-    | { type: 'text'; text: string }
-    | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+  // Build the message content — one block per document, typed correctly.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const content: any[] = []
 
-  const content: ContentBlock[] = []
+  const preamble = [
+    `You are receiving two trade documents for cross-document compliance analysis. Please examine them carefully.`,
+    docs.buyerName ? `Buyer: ${docs.buyerName}` : '',
+    docs.supplierName ? `Supplier: ${docs.supplierName}` : '',
+    docs.amount ? `Declared settlement amount: USD ${docs.amount.toLocaleString()}` : '',
+  ].filter(Boolean).join('\n')
 
-  content.push({
-    type: 'text',
-    text: `You are receiving two trade documents for cross-document compliance analysis. Please examine them carefully.
+  content.push({ type: 'text', text: preamble })
 
-${docs.buyerName ? `Buyer: ${docs.buyerName}` : ''}
-${docs.supplierName ? `Supplier: ${docs.supplierName}` : ''}
-${docs.amount ? `Declared settlement amount: USD ${docs.amount.toLocaleString()}` : ''}
-
-DOCUMENT 1 — INVOICE (${docs.invoice.name}):`,
-  })
-
-  if (docs.invoice.mediaType === 'image') {
-    const mimeType = docs.invoice.name.toLowerCase().endsWith('.png')
-      ? 'image/png'
-      : docs.invoice.name.toLowerCase().endsWith('.webp')
-      ? 'image/webp'
-      : 'image/jpeg'
-    content.push({
-      type: 'image',
-      source: { type: 'base64', media_type: mimeType, data: docs.invoice.content },
-    })
-  } else {
-    content.push({ type: 'text', text: docs.invoice.content })
+  /** Append one document (invoice or BoL) as the appropriate content block. */
+  function pushDoc(doc: UploadedDocs['invoice'], label: string) {
+    content.push({ type: 'text', text: `\nDOCUMENT — ${label} (${doc.name}):` })
+    if (doc.mediaType === 'pdf') {
+      // Native PDF support — Claude reads the full document including layout
+      content.push({
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: doc.content },
+      })
+    } else if (doc.mediaType === 'image') {
+      const ext = doc.name.toLowerCase()
+      const media_type = ext.endsWith('.png') ? 'image/png'
+        : ext.endsWith('.webp') ? 'image/webp'
+        : 'image/jpeg'
+      content.push({
+        type: 'image',
+        source: { type: 'base64', media_type, data: doc.content },
+      })
+    } else {
+      // Plain text / CSV
+      content.push({ type: 'text', text: doc.content })
+    }
   }
 
-  content.push({ type: 'text', text: `\nDOCUMENT 2 — BILL OF LADING (${docs.billOfLading.name}):` })
-
-  if (docs.billOfLading.mediaType === 'image') {
-    const mimeType = docs.billOfLading.name.toLowerCase().endsWith('.png')
-      ? 'image/png'
-      : docs.billOfLading.name.toLowerCase().endsWith('.webp')
-      ? 'image/webp'
-      : 'image/jpeg'
-    content.push({
-      type: 'image',
-      source: { type: 'base64', media_type: mimeType, data: docs.billOfLading.content },
-    })
-  } else {
-    content.push({ type: 'text', text: docs.billOfLading.content })
-  }
+  pushDoc(docs.invoice, 'INVOICE')
+  pushDoc(docs.billOfLading, 'BILL OF LADING')
 
   const mStream = client.messages.stream({
     model: 'claude-sonnet-4-6',
     max_tokens: 1200,
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: content as Parameters<typeof client.messages.stream>[0]['messages'][0]['content'] }],
+    messages: [{ role: 'user', content }],
   })
 
   let full = ''

@@ -74,7 +74,7 @@ export interface TradeScenario {
 }
 
 // ─── Uploaded trade documents (raw, for the upload flow) ───────────────
-export type DocMediaType = 'text' | 'image'
+export type DocMediaType = 'text' | 'image' | 'pdf'
 
 export interface UploadedDoc {
   content: string       // plain text OR base64 data URL

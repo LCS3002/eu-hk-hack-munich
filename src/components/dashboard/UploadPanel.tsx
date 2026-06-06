@@ -3,7 +3,9 @@
 // FaanSail — UploadPanel
 // A modal overlay for uploading real trade documents (invoice + bill of lading).
 // Supports PDF, images (PNG/JPG/WEBP), and text files.
-// Images are base64-encoded and sent to Claude Vision; text files are read directly.
+//   PDF   → base64, sent as Claude `document` content block (native PDF support)
+//   Image → base64, sent as Claude Vision `image` content block
+//   Text  → plain string, sent as text content block
 // Matches the institutional white/red design language.
 
 import { useCallback, useRef, useState } from 'react'
@@ -16,24 +18,34 @@ interface UploadPanelProps {
 
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.txt,.csv'
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+const PDF_TYPE = 'application/pdf'
 
 async function readFile(file: File): Promise<UploadedDoc> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     const isImage = IMAGE_TYPES.includes(file.type)
+    const isPdf = file.type === PDF_TYPE || file.name.toLowerCase().endsWith('.pdf')
 
     if (isImage) {
+      // Image → base64 for Claude Vision
       reader.onload = () => {
-        // Strip the data URL prefix — keep only the base64 part
         const dataUrl = reader.result as string
         const base64 = dataUrl.split(',')[1] ?? dataUrl
         resolve({ content: base64, mediaType: 'image' as DocMediaType, name: file.name })
       }
       reader.onerror = reject
       reader.readAsDataURL(file)
+    } else if (isPdf) {
+      // PDF → base64 for Claude document block (NOT readAsText — PDFs are binary)
+      reader.onload = () => {
+        const dataUrl = reader.result as string
+        const base64 = dataUrl.split(',')[1] ?? dataUrl
+        resolve({ content: base64, mediaType: 'pdf' as DocMediaType, name: file.name })
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
     } else {
-      // PDF or text: read as text. PDFs will be partially readable but Claude
-      // handles this gracefully; for real PDFs the image path is preferred.
+      // Plain text / CSV
       reader.onload = () => {
         resolve({ content: reader.result as string, mediaType: 'text' as DocMediaType, name: file.name })
       }
@@ -141,7 +153,9 @@ function DropZone({ label, sub, file, onFile }: DropZoneProps) {
               textTransform: 'uppercase',
             }}
           >
-            {file.mediaType === 'image' ? 'Image · Claude Vision' : 'Text · extracted'}
+            {file.mediaType === 'image' ? 'Image · Claude Vision'
+              : file.mediaType === 'pdf' ? 'PDF · Claude document'
+              : 'Text · extracted'}
           </span>
         </>
       ) : (
