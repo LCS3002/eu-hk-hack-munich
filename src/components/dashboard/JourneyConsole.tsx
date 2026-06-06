@@ -434,10 +434,12 @@ function VoxelGlobe({
   progress,
   blocked,
   active,
+  labels = true,
 }: {
   progress: number
   blocked: boolean
   active: boolean
+  labels?: boolean
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.InstancedMesh>(null)
@@ -535,8 +537,8 @@ function VoxelGlobe({
       <CityMarker lat={HONG_KONG.lat} lon={HONG_KONG.lon} radius={radius} color="#c1121f" hub />
 
       {/* Labels: only Lagos + Hong Kong (HK anchored under its marker). */}
-      <CityLabel city={LAGOS} radius={radius} />
-      <CityLabel city={HONG_KONG} radius={radius} hub />
+      {labels && <CityLabel city={LAGOS} radius={radius} />}
+      {labels && <CityLabel city={HONG_KONG} radius={radius} hub />}
     </group>
   )
 }
@@ -775,11 +777,11 @@ export default function JourneyConsole({
         <div style={{ position: 'absolute', left: '50%', bottom: '-20%', transform: 'translateX(-50%)', width: 'min(1080px, 140%)', aspectRatio: '1 / 1' }}>
           <Canvas camera={{ position: [0, 0, 5.4], fov: 42 }} gl={{ alpha: true, antialias: true }} style={{ position: 'absolute', inset: 0 }}>
             <ambientLight intensity={0.7} />
-            <VoxelGlobe progress={pulseProgress} blocked={pulseBlocked} active={active} />
+            <VoxelGlobe progress={pulseProgress} blocked={pulseBlocked} active={active} labels={false} />
           </Canvas>
         </div>
         {/* readability scrim — opaque at the top (behind the flow), clears toward the globe */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, var(--bg-base) 0%, rgba(250,250,250,0.84) 24%, rgba(250,250,250,0.32) 48%, rgba(250,250,250,0) 70%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, var(--bg-base) 0%, rgba(250,250,250,0.92) 30%, rgba(250,250,250,0.45) 52%, rgba(250,250,250,0) 74%)' }} />
         {/* corridor caption, bottom-center */}
         <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--accent)' }}>Settlement corridor</span>
@@ -802,7 +804,7 @@ export default function JourneyConsole({
         {idle ? (
           <IdleCenter />
         ) : (
-          <div style={{ width: '100%', maxWidth: 860, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ width: '100%', maxWidth: 860, padding: '40px 36px 48px', display: 'flex', flexDirection: 'column', gap: 18 }}>
             <PhaseRail statuses={phaseStatuses} />
 
             {phase === 'settled' ? (
