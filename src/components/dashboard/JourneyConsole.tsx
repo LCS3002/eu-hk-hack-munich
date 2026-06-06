@@ -557,6 +557,7 @@ export default function JourneyConsole({
   const [result, setResult] = useState<ProofOfTradeResult | null>(null)
   const [tx, setTx] = useState<TxInfo | null>(null)
   const [settleSecs, setSettleSecs] = useState<number | null>(null)
+  const [confirmedBlock, setConfirmedBlock] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const reasoningRef = useRef<HTMLDivElement>(null)
@@ -570,6 +571,34 @@ export default function JourneyConsole({
       reasoningRef.current.scrollTop = reasoningRef.current.scrollHeight
   }, [reasoning])
 
+  // On-chain finality: once a real Sepolia tx lands, poll its receipt and surface
+  // the block it mined in ("Confirmed on-chain · block N"). Best-effort — a failed
+  // poll never blocks the demo; the optimistic settled state already stands.
+  useEffect(() => {
+    if (!tx || tx.chain !== 'sepolia' || !tx.hash) return
+    let cancelled = false
+    let tries = 0
+    const poll = async () => {
+      if (cancelled) return
+      tries++
+      try {
+        const r = await fetch(`/api/txstatus?hash=${tx.hash}`)
+        const d = (await r.json()) as { mined: boolean; blockNumber: number | null }
+        if (!cancelled && d.mined && d.blockNumber != null) {
+          setConfirmedBlock(d.blockNumber)
+          return
+        }
+      } catch {
+        /* finality is a bonus — ignore and retry */
+      }
+      if (!cancelled && tries < 15) window.setTimeout(poll, 3000)
+    }
+    void poll()
+    return () => {
+      cancelled = true
+    }
+  }, [tx])
+
   useEffect(() => {
     // Cleared → reset to the calm idle state.
     if (!scenarioId) {
@@ -581,6 +610,7 @@ export default function JourneyConsole({
       setResult(null)
       setTx(null)
       setSettleSecs(null)
+      setConfirmedBlock(null)
       setError(null)
       return
     }
@@ -597,6 +627,7 @@ export default function JourneyConsole({
     setResult(null)
     setTx(null)
     setSettleSecs(null)
+    setConfirmedBlock(null)
     setError(null)
     setPhase('depart')
 
@@ -916,6 +947,7 @@ export default function JourneyConsole({
                 blocked={blocked}
                 settling={settling}
                 settled={settled}
+                confirmedBlock={confirmedBlock}
               />
             </Section>
 
@@ -1189,6 +1221,7 @@ function SettlementBlock({
   blocked,
   settling,
   settled,
+  confirmedBlock,
 }: {
   phase: Phase
   tx: TxInfo | null
@@ -1197,6 +1230,7 @@ function SettlementBlock({
   blocked: boolean
   settling: boolean
   settled: boolean
+  confirmedBlock: number | null
 }) {
   const fundsThrough = settling || settled
 
@@ -1275,6 +1309,24 @@ function SettlementBlock({
           </span>
         )}
       </div>
+
+      {/* Live on-chain finality — the optimistic tx mining into a block. */}
+      {tx.chain === 'sepolia' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: -8 }}>
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: confirmedBlock != null ? 'var(--cleared)' : 'var(--accent)',
+              animation: confirmedBlock == null ? 'fs-pulse 1.3s ease-in-out infinite' : 'none',
+            }}
+          />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.03em', color: confirmedBlock != null ? 'var(--cleared)' : 'var(--text-3)' }}>
+            {confirmedBlock != null ? `Confirmed on-chain · block ${confirmedBlock}` : 'Confirming on Sepolia…'}
+          </span>
+        </div>
+      )}
 
       {/* The real value flow across live Sepolia wallets */}
       <WalletFlow amount={amount ?? ''} released />
