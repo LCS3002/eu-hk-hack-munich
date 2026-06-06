@@ -98,8 +98,17 @@ export async function POST(req: Request) {
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      // If the client disconnects mid-stream (e.g. a refresh during the on-chain
+      // settle), enqueue throws "Controller is already closed". Swallow it and
+      // latch `closed` so later stages quietly no-op instead of erroring.
+      let closed = false
       const emit = (event: VerifyEvent) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+        if (closed) return
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+        } catch {
+          closed = true
+        }
       }
 
       let result: ProofOfTradeResult = scenario.fixtureResult
@@ -161,7 +170,11 @@ export async function POST(req: Request) {
 
       // ── Stage 4: done ───────────────────────────────────────────────────
       emit({ type: 'done' })
-      controller.close()
+      try {
+        if (!closed) controller.close()
+      } catch {
+        /* already closed by a client disconnect */
+      }
     },
   })
 

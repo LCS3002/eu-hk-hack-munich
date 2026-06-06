@@ -27,13 +27,13 @@ const BUTTONS: TradeButton[] = [
   {
     id: CLEAN_TRADE.id, // 'TRD-CLEAN'
     label: CLEAN_TRADE.label, // 'Clean trade'
-    sub: `${CLEAN_TRADE.invoice.invoiceRef} · $${CLEAN_TRADE.amount.toLocaleString()}`,
+    sub: `${CLEAN_TRADE.invoice.invoiceRef} · $${CLEAN_TRADE.amount.toLocaleString('en-US')}`,
     tone: 'clean',
   },
   {
     id: DIRTY_TRADE.id, // 'TRD-DIRTY'
     label: DIRTY_TRADE.label, // 'Over-invoiced shipment'
-    sub: `${DIRTY_TRADE.invoice.invoiceRef} · $${DIRTY_TRADE.amount.toLocaleString()}`,
+    sub: `${DIRTY_TRADE.invoice.invoiceRef} · $${DIRTY_TRADE.amount.toLocaleString('en-US')}`,
     tone: 'dirty',
   },
 ]
