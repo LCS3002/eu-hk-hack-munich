@@ -1413,7 +1413,7 @@ function SettlementBlock({
         </div>
 
         {/* The same real wallets — but the release step is refused on-chain */}
-        <WalletFlow amount={amount ?? ''} released={false} />
+        <WalletFlow amount={amount ?? ''} released={false} chain={tx?.chain} />
       </div>
     )
   }
@@ -1440,7 +1440,10 @@ function SettlementBlock({
   }
 
   // SETTLED → the real, clickable on-chain money flow.
-  const txUrl = tx.explorerUrl || (tx.hash ? `${EXPLORER}/tx/${tx.hash}` : null)
+  // Only link to Etherscan for real on-chain transactions — mock hashes don't exist.
+  const txUrl = tx.chain !== 'mock'
+    ? (tx.explorerUrl || (tx.hash ? `${EXPLORER}/tx/${tx.hash}` : null))
+    : null
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Settled-in headline */}
@@ -1483,7 +1486,7 @@ function SettlementBlock({
       )}
 
       {/* The real value flow across live Sepolia wallets */}
-      <WalletFlow amount={amount ?? ''} released />
+      <WalletFlow amount={amount ?? ''} released chain={tx?.chain} />
 
       {/* Transaction + the stablecoin asset, clickable */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1, borderTop: '1px solid var(--border)' }}>
@@ -1496,7 +1499,7 @@ function SettlementBlock({
           hint="the permanent, public on-chain record"
           mono
         />
-        {USDC && (
+        {USDC && tx.chain !== 'mock' && (
           <ChainRow
             label="Stablecoin (the money)"
             value={`MockUSDC · ${truncAddr(USDC)}`}
@@ -1515,12 +1518,14 @@ function SettlementBlock({
 // Every address is a live Sepolia account/contract; the step labels mirror the
 // escrow's actual function calls. Shown on settle (released) and on a block
 // (released=false → the release step is refused and the supplier stays unpaid).
-function WalletFlow({ amount, released }: { amount: string; released: boolean }) {
+function WalletFlow({ amount, released, chain }: { amount: string; released: boolean; chain?: string }) {
+  const isLive = chain && chain !== 'mock'
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Plain-language legend so a non-crypto viewer knows what these are. */}
       <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10.5, lineHeight: 1.5, color: 'var(--text-3)', marginBottom: 12 }}>
-        Real accounts &amp; contracts on the Sepolia test blockchain — click any to verify on Etherscan.
+        {isLive
+          ? 'Real accounts & contracts on the Sepolia test blockchain — click any to verify on Etherscan.'
+          : 'Simulated settlement — escrow logic is real, running on a local chain in demo mode.'}
       </span>
       <WalletNode
         tone="var(--accent)"
@@ -1873,7 +1878,9 @@ function PaymentComplete({
   settleSecs: number | null
   confirmedBlock: number | null
 }) {
-  const txUrl = tx?.explorerUrl || (tx?.hash ? `${EXPLORER}/tx/${tx.hash}` : null)
+  const txUrl = tx?.chain !== 'mock'
+    ? (tx?.explorerUrl || (tx?.hash ? `${EXPLORER}/tx/${tx.hash}` : null))
+    : null
   return (
     <div
       style={{
@@ -1917,7 +1924,7 @@ function PaymentComplete({
       </div>
 
       {/* the real value flow, animated through the wallets */}
-      <WalletFlow amount={amount ?? ''} released />
+      <WalletFlow amount={amount ?? ''} released chain={tx?.chain} />
 
       {/* the receipt */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1, borderTop: '1px solid var(--border)' }}>
@@ -1925,7 +1932,7 @@ function PaymentComplete({
         {confirmedBlock != null && (
           <ChainRow label="Confirmed block" value={`#${confirmedBlock}`} href={null} hint="mined & final on Sepolia" mono />
         )}
-        {USDC && (
+        {USDC && tx?.chain !== 'mock' && (
           <ChainRow label="Stablecoin (the money)" value={`MockUSDC · ${truncAddr(USDC)}`} title={USDC} href={`${EXPLORER}/address/${USDC}`} hint="digital test-dollars — the asset that moved" mono />
         )}
       </div>
