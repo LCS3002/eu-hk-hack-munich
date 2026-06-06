@@ -822,7 +822,7 @@ export default function JourneyConsole({
                 </div>
 
                 <Section label="AI Compliance Gate">
-                  <DocumentPreview scenario={scenario} uploadedDocs={uploadedDocs ?? null} />
+                  <DocumentPreview scenario={scenario} uploadedDocs={uploadedDocs ?? null} revealed={!!result} />
                   <VerdictBlock phase={phase} result={result} summaryLine={summaryLine} error={error} />
                 </Section>
 
@@ -1006,9 +1006,11 @@ function IdleCenter({ onUpload }: { onUpload?: () => void }) {
 function DocumentPreview({
   scenario,
   uploadedDocs,
+  revealed = false,
 }: {
   scenario: TradeScenario | null
   uploadedDocs: UploadedDocs | null
+  revealed?: boolean
 }) {
   if (!scenario && !uploadedDocs) return null
 
@@ -1154,10 +1156,11 @@ function DocumentPreview({
         ))}
       </div>
 
-      {/* Field rows */}
+      {/* Field rows — mismatches only shown after verdict arrives */}
       {rows.map((row, i) => {
+        const flagged = revealed && row.mismatch
         const red = 'var(--blocked)'
-        const bg = row.mismatch ? 'rgba(193,18,31,0.04)' : 'transparent'
+        const bg = flagged ? 'rgba(193,18,31,0.04)' : 'transparent'
         return (
           <div
             key={row.key}
@@ -1166,7 +1169,7 @@ function DocumentPreview({
               gridTemplateColumns: '120px 1fr 1fr',
               background: bg,
               borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none',
-              transition: 'background 0.2s ease',
+              transition: 'background 0.5s ease, color 0.5s ease',
             }}
           >
             <div
@@ -1177,13 +1180,14 @@ function DocumentPreview({
                 fontWeight: 600,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                color: row.mismatch ? red : 'var(--text-3)',
+                color: flagged ? red : 'var(--text-3)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 5,
+                transition: 'color 0.5s ease',
               }}
             >
-              {row.mismatch && (
+              {flagged && (
                 <span style={{ color: red, fontSize: 10, lineHeight: 1 }}>✕</span>
               )}
               {row.key}
@@ -1195,10 +1199,11 @@ function DocumentPreview({
                   padding: '8px 12px',
                   fontFamily: 'var(--font-mono)',
                   fontSize: 10.5,
-                  color: row.mismatch ? red : 'var(--text-1)',
-                  fontWeight: row.mismatch ? 600 : 400,
+                  color: flagged ? red : 'var(--text-1)',
+                  fontWeight: flagged ? 600 : 400,
                   borderLeft: '1px solid var(--border)',
                   lineHeight: 1.4,
+                  transition: 'color 0.5s ease, font-weight 0.3s ease',
                 }}
               >
                 {val}
@@ -1208,8 +1213,8 @@ function DocumentPreview({
         )
       })}
 
-      {/* Summary footer */}
-      {anyMismatch && (
+      {/* Summary footer — only after verdict */}
+      {revealed && anyMismatch && (
         <div
           style={{
             padding: '6px 12px',
