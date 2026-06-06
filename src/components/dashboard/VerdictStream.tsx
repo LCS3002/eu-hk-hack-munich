@@ -19,6 +19,7 @@
 // Light theme; uses the documented var(--…) tokens.
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import type {
   VerifyEvent,
   ProofOfTradeResult,
@@ -51,6 +52,7 @@ export default function VerdictStream({
   onTx,
   onStatus,
 }: VerdictStreamProps) {
+  const t = useTranslations('verdictStream')
   const [text, setText] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [result, setResult] = useState<ProofOfTradeResult | null>(null)
@@ -137,7 +139,7 @@ export default function VerdictStream({
       // Soft error — the stream/route is unavailable. Keep the demo calm and
       // still notify the parent so it can settle its own state machine.
       setError(
-        'Verification stream unavailable — check the API route / chain bridge.'
+        t('streamError')
       )
       onStatus?.('IDLE')
     } finally {
@@ -223,7 +225,7 @@ export default function VerdictStream({
             flexShrink: 0,
           }}
         />
-        <span>AI Compliance Gate</span>
+        <span>{t('title')}</span>
         <span
           style={{
             marginLeft: 'auto',
@@ -234,12 +236,12 @@ export default function VerdictStream({
           }}
         >
           {streaming
-            ? 'VERIFYING'
+            ? t('verifying').toUpperCase()
             : result
               ? cleared
-                ? 'CLEARED'
-                : 'BLOCKED'
-              : 'STANDBY'}
+                ? t('cleared').toUpperCase()
+                : t('blocked').toUpperCase()
+              : t('standby').toUpperCase()}
         </span>
       </div>
 
@@ -275,7 +277,7 @@ export default function VerdictStream({
             }}
           >
             <span style={{ fontSize: 22, opacity: 0.5 }}>⊘</span>
-            Select a trade to verify
+            {t('selectTrade')}
           </div>
         )}
 
@@ -425,7 +427,7 @@ function VerdictBadge({ result }: { result: ProofOfTradeResult }) {
 function ChecksList({ checks }: { checks: CrossDocCheck[] }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <SectionLabel>Cross-document checks</SectionLabel>
+      <SectionLabel><TranslatedLabel k="crossDocChecks" /></SectionLabel>
       {checks.map((c, i) => {
         const pass = c.status === 'PASS'
         const color = pass ? 'var(--cleared)' : 'var(--blocked)'
@@ -490,7 +492,7 @@ function ChecksList({ checks }: { checks: CrossDocCheck[] }) {
 function FlagsList({ flags }: { flags: string[] }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <SectionLabel>Risk flags</SectionLabel>
+      <SectionLabel><TranslatedLabel k="riskFlags" /></SectionLabel>
       {flags.map((f, i) => (
         <div
           key={i}
@@ -525,7 +527,7 @@ function TxBlock({ tx }: { tx: TxInfo }) {
   const color = settled ? 'var(--cleared)' : 'var(--blocked)'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <SectionLabel>On-chain settlement</SectionLabel>
+      <SectionLabel><TranslatedLabel k="onChainSettlement" /></SectionLabel>
       <div
         style={{
           display: 'flex',
@@ -582,7 +584,7 @@ function TxBlock({ tx }: { tx: TxInfo }) {
               whiteSpace: 'nowrap',
             }}
           >
-            Etherscan ↗
+            <TranslatedLabel k="viewOnEtherscan" />
           </a>
         )}
       </div>
@@ -605,4 +607,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       {children}
     </span>
   )
+}
+
+function TranslatedLabel({ k }: { k: 'crossDocChecks' | 'riskFlags' | 'onChainSettlement' | 'viewOnEtherscan' }) {
+  const t = useTranslations('verdictStream')
+  return <>{t(k)}</>
 }
