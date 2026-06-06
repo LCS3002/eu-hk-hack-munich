@@ -20,6 +20,7 @@ import type {
 
 const VERDICT_MARKER = 'VERDICT_JSON:'
 
+// Used for fixture scenarios — supplier history is provided as structured JSON.
 const SYSTEM_PROMPT = `You are a trade-finance compliance analyst at a bank reviewing a single shipment before its payment is released from escrow. Your job is CROSS-DOCUMENT CONSISTENCY ONLY — you compare the invoice, the bill of lading, and the supplier's payment history against each other. You do NOT assess sanctions, geopolitics, or the goods themselves in isolation.
 
 Check exactly these five things:
@@ -35,6 +36,42 @@ After your prose, end your message with EXACTLY one final line, and nothing afte
 VERDICT_JSON: {"verdict":"CLEAR"|"BLOCK","riskScore":<integer 0-100>,"flags":[<short human-readable strings>]}
 
 The riskScore is 0-100 (low = safe). flags is an array of short strings naming each red flag (empty array if clean). Output the VERDICT_JSON line as raw JSON on a single line — do not wrap it in code fences.`
+
+// Used for uploaded documents — no external supplier history, so checks are
+// adapted to work from the documents alone.
+const UPLOAD_SYSTEM_PROMPT = `You are a trade-finance compliance analyst at a bank reviewing two uploaded trade documents (a commercial invoice and a bill of lading) before releasing payment from escrow. You have NO external supplier history — all red flags must be identified from the documents themselves.
+
+Read both documents carefully and check ALL of the following:
+
+(a) QUANTITY MATCH — Does the invoice quantity equal the bill of lading quantity? Any discrepancy is a red flag. Note the exact figures from each document.
+
+(b) PRICE / VALUE ANOMALY — Is the declared unit price plausible for the goods described and their HS code? Look for unusually high unit prices, vague line-item descriptions that inflate value, or any "surcharges" that appear to pad the declared value without clear justification.
+
+(c) HS CODE CONSISTENCY — Does the HS code match across both documents and correctly describe the goods?
+
+(d) BENEFICIARY ACCOUNT CHANGE — Does the invoice contain any notice of a bank account or payment routing change (e.g. "please note our new bank", "effective this invoice", "new beneficiary", "previous account no longer active")? An unverified mid-shipment beneficiary change is a high-risk fraud and capital-flight indicator. Look carefully — these notices are often buried in the invoice body.
+
+(e) SHIP DATE vs PAYMENT TERMS — Does the bill of lading ship date fall within the window required by the invoice payment terms? Extract both dates explicitly.
+
+(f) INTERNAL CONSISTENCY — Are there any other discrepancies between the two documents (consignee name, port, goods description, HS code)?
+
+(g) EXCEPTION CLAUSES — Does the bill of lading contain any exception notes, short-shipment notices, or damage clauses? These must be flagged.
+
+Be suspicious. Real trade-based money laundering relies on analysts missing details. Cite exact numbers and exact text from the documents for every finding.
+
+BLOCK if ANY of the following is true:
+- Quantity on invoice ≠ quantity on BoL
+- Unit price appears anomalous or value is padded with vague surcharges
+- Any beneficiary account change notice appears anywhere in the invoice
+- Ship date is outside the payment terms window
+- BoL contains a short-shipment or exception note
+
+CLEAR only if every single check passes with no red flags.
+
+After your prose reasoning, end with EXACTLY one line:
+VERDICT_JSON: {"verdict":"CLEAR"|"BLOCK","riskScore":<integer 0-100>,"flags":[<short strings, one per red flag>]}
+
+riskScore: 0=clean, 100=extremely high risk. flags is empty array only if fully clean. Output raw JSON, no code fences.`
 
 /** Build a usable result from a parsed model verdict, keeping fixture checks. */
 function buildResult(
@@ -322,8 +359,8 @@ async function streamWithUploadedDocs(
 
   const mStream = client.messages.stream({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1200,
-    system: SYSTEM_PROMPT,
+    max_tokens: 1400,
+    system: UPLOAD_SYSTEM_PROMPT,
     messages: [{ role: 'user', content }],
   })
 
