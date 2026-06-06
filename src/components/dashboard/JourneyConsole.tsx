@@ -80,6 +80,17 @@ interface TxInfo {
   explorerUrl: string | null
 }
 
+// The TradePassport as the contract actually holds it (read back for the regulator view).
+interface OnchainPassport {
+  hsCode: string
+  declaredValue: number
+  quantity: number
+  buyer: string
+  supplier: string
+  amount: number
+  status: string
+}
+
 function truncHash(hash: string): string {
   if (hash.length <= 18) return hash
   return `${hash.slice(0, 10)}…${hash.slice(-8)}`
@@ -559,6 +570,8 @@ export default function JourneyConsole({
   const [tx, setTx] = useState<TxInfo | null>(null)
   const [settleSecs, setSettleSecs] = useState<number | null>(null)
   const [confirmedBlock, setConfirmedBlock] = useState<number | null>(null)
+  const [onchainRef, setOnchainRef] = useState<string | null>(null)
+  const [passport, setPassport] = useState<OnchainPassport | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
@@ -593,6 +606,33 @@ export default function JourneyConsole({
     }
   }, [tx])
 
+  // Regulator read-back: once we have the on-chain ref, fetch the passport the
+  // contract actually stored and show it — reconciliation demonstrated, not claimed.
+  useEffect(() => {
+    if (!onchainRef || !tx || tx.chain === 'mock') return
+    let cancelled = false
+    let tries = 0
+    const poll = async () => {
+      if (cancelled) return
+      tries++
+      try {
+        const r = await fetch(`/api/passport?ref=${encodeURIComponent(onchainRef)}`)
+        const d = (await r.json()) as OnchainPassport & { found: boolean }
+        if (!cancelled && d.found) {
+          setPassport(d)
+          return
+        }
+      } catch {
+        /* read-back is a bonus — ignore and retry */
+      }
+      if (!cancelled && tries < 12) window.setTimeout(poll, 3000)
+    }
+    void poll()
+    return () => {
+      cancelled = true
+    }
+  }, [onchainRef, tx])
+
   useEffect(() => {
     // Cleared → reset to the calm idle state.
     if (!scenarioId) {
@@ -604,6 +644,8 @@ export default function JourneyConsole({
       setTx(null)
       setSettleSecs(null)
       setConfirmedBlock(null)
+      setOnchainRef(null)
+      setPassport(null)
       setError(null)
       return
     }
@@ -620,6 +662,8 @@ export default function JourneyConsole({
     setTx(null)
     setSettleSecs(null)
     setConfirmedBlock(null)
+    setOnchainRef(null)
+    setPassport(null)
     setError(null)
     setPhase('depart')
 
@@ -686,6 +730,7 @@ export default function JourneyConsole({
           chain: evt.chain,
           explorerUrl: evt.explorerUrl,
         })
+        setOnchainRef(evt.ref ?? null)
         if (runStartRef.current) {
           setSettleSecs(Math.max(1, Math.round((Date.now() - runStartRef.current) / 1000)))
         }
@@ -757,6 +802,15 @@ export default function JourneyConsole({
               ? ['done', 'refused', 'done', 'refused', 'pending']
               : ['pending', 'pending', 'pending', 'pending', 'pending']
 
+  // The real artifact carried at each hop — the money moved / what was audited.
+  const phaseNotes: string[] = [
+    amount ?? '',
+    result ? `risk ${result.riskScore}` : '',
+    settling || settled || blocked ? `${amount ?? ''} locked` : '',
+    settled ? `${amount ?? ''} → supplier` : blocked ? 'refused' : '',
+    confirmedBlock != null ? `block ${confirmedBlock}` : settled ? 'confirming…' : '',
+  ]
+
   return (
     <div
       style={{
@@ -774,7 +828,7 @@ export default function JourneyConsole({
 
       {/* ════════ Globe — large background that bleeds into the whole whitespace ════════ */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', left: '50%', bottom: '-20%', transform: 'translateX(-50%)', width: 'min(1080px, 140%)', aspectRatio: '1 / 1' }}>
+        <div style={{ position: 'absolute', left: '50%', bottom: '-30%', transform: 'translateX(-50%)', width: 'min(860px, 112%)', aspectRatio: '1 / 1' }}>
           <Canvas camera={{ position: [0, 0, 5.4], fov: 42 }} gl={{ alpha: true, antialias: true }} style={{ position: 'absolute', inset: 0 }}>
             <ambientLight intensity={0.7} />
             <VoxelGlobe progress={pulseProgress} blocked={pulseBlocked} active={active} labels={false} />
@@ -805,10 +859,10 @@ export default function JourneyConsole({
           <IdleCenter />
         ) : (
           <div style={{ width: '100%', maxWidth: 860, padding: '40px 36px 48px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <PhaseRail statuses={phaseStatuses} />
+            <PhaseRail statuses={phaseStatuses} notes={phaseNotes} />
 
             {phase === 'settled' ? (
-              <PaymentComplete amount={amount} tx={tx} settleSecs={settleSecs} confirmedBlock={confirmedBlock} />
+              <PaymentComplete amount={amount} amountNum={scenario?.amount ?? null} tx={tx} settleSecs={settleSecs} confirmedBlock={confirmedBlock} passport={passport} />
             ) : (
               <div
                 style={{
@@ -1519,7 +1573,7 @@ type PStatus = 'pending' | 'active' | 'done' | 'refused'
 const PHASE_LABELS = ['Trade', 'AI gate', 'Escrow', 'Release', 'Settled']
 
 // Grasshopper-style node-and-wire flow: component boxes joined by bezier wires.
-function PhaseRail({ statuses }: { statuses: PStatus[] }) {
+function PhaseRail({ statuses, notes }: { statuses: PStatus[]; notes?: string[] }) {
   const cx = [82, 260, 440, 620, 798]
   const cy = [54, 96, 54, 96, 54]
   const hw = 66
@@ -1579,6 +1633,12 @@ function PhaseRail({ statuses }: { statuses: PStatus[] }) {
             <text x={cx[i] - hw + 35} y={cy[i] + 0.5} dominantBaseline="central" style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.05em', fill: s === 'pending' ? 'var(--text-3)' : 'var(--text-1)' }}>
               {label.toUpperCase()}
             </text>
+            {/* the real artifact carried at this hop — money moved / audited */}
+            {notes?.[i] ? (
+              <text x={cx[i]} y={cy[i] + hh + 13} textAnchor="middle" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600, letterSpacing: '0.02em', fill: c }}>
+                {notes[i]}
+              </text>
+            ) : null}
           </g>
         )
       })}
@@ -1589,16 +1649,22 @@ function PhaseRail({ statuses }: { statuses: PStatus[] }) {
 // ─── The defined end state: payment complete, with the full receipt ─────────
 function PaymentComplete({
   amount,
+  amountNum,
   tx,
   settleSecs,
   confirmedBlock,
+  passport,
 }: {
   amount: string | null
+  amountNum: number | null
   tx: TxInfo | null
   settleSecs: number | null
   confirmedBlock: number | null
+  passport: OnchainPassport | null
 }) {
   const txUrl = tx?.explorerUrl || (tx?.hash ? `${EXPLORER}/tx/${tx.hash}` : null)
+  // Liquidity: faster settlement collapses the ~3-day pre-funding window.
+  const carrySaved = amountNum != null ? Math.round(amountNum * (0.063 / 365) * 3) : null
   return (
     <div
       style={{
@@ -1657,6 +1723,39 @@ function PaymentComplete({
         )}
       </div>
 
+      {/* Liquidity — the pre-funding window collapses (honest: speed, not FX) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', background: 'var(--bg-sunken)', borderLeft: '3px solid var(--accent)' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent)' }}>Liquidity freed</span>
+          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>T+3 → T+0</span>
+        </div>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, lineHeight: 1.55, color: 'var(--text-2)' }}>
+          {amount} unlocked ~3 days early{carrySaved ? ` · ~$${carrySaved.toLocaleString('en-US')} carry saved` : ''} — at $10M/mo of flow that frees ~$1M of trapped pre-funding.{' '}
+          <span style={{ color: 'var(--text-3)' }}>(No FX risk taken — a licensed partner provides liquidity; speed + netting shrink the window.)</span>
+        </span>
+      </div>
+
+      {/* Regulator read-back — the passport the contract actually holds, read live */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '12px 14px', background: 'rgba(0,0,0,0.02)', borderLeft: '3px solid var(--text-1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-2)' }}>Regulator view · read from chain</span>
+          {passport && <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: 'var(--cleared)' }}>● {passport.status}</span>}
+        </div>
+        {passport ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 18px' }}>
+            <ReadRow k="HS code" v={passport.hsCode || '—'} />
+            <ReadRow k="Declared value" v={`$${passport.declaredValue.toLocaleString('en-US')}`} />
+            <ReadRow k="Quantity" v={passport.quantity.toLocaleString('en-US')} />
+            <ReadRow k="Amount" v={`${passport.amount.toLocaleString('en-US')} USDC`} />
+          </div>
+        ) : (
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--text-3)' }}>Reading the passport back from the contract…</span>
+        )}
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10.5, color: 'var(--text-3)', lineHeight: 1.5 }}>
+          The exact record the buyer, supplier and a regulator all read — one ledger, nothing to reconcile.
+        </span>
+      </div>
+
       {/* reconciliation — one event, three ledgers */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'rgba(21,128,61,0.09)' }}>
         <span style={{ color: 'var(--cleared)', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>✓</span>
@@ -1664,6 +1763,15 @@ function PaymentComplete({
           Buyer · Supplier · Regulator — reconciled off one settlement event · 0 breaks
         </span>
       </div>
+    </div>
+  )
+}
+
+function ReadRow({ k, v }: { k: string; v: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid var(--border)', paddingBottom: 3 }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-3)' }}>{k}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--text-1)' }}>{v}</span>
     </div>
   )
 }

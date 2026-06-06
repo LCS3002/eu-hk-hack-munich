@@ -33,6 +33,7 @@ export interface SettleResult {
   status: 'SETTLED' | 'BLOCKED'
   explorerUrl: string | null
   chain: ChainMode
+  onchainRef: string // the bytes32-decoded ref the passport is stored under (for read-back)
 }
 
 /** A 0x-prefixed 64-hex-char string that looks like a real tx hash. */
@@ -56,6 +57,7 @@ function mockSettlement(verdict: Verdict): SettleResult {
     status: verdict === 'CLEAR' ? 'SETTLED' : 'BLOCKED',
     explorerUrl: null,
     chain: 'mock',
+    onchainRef: '',
   }
 }
 
@@ -161,6 +163,7 @@ async function settleOnce(
       explorerUrl:
         chain === 'sepolia' ? `https://sepolia.etherscan.io/tx/${hash}` : null,
       chain,
+      onchainRef: refStr,
     }
   } catch (err) {
     console.error('[chain] on-chain settlement failed, using mock:', err)

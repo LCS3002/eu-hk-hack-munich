@@ -77,7 +77,7 @@ export interface TradeScenario {
 export type VerifyEvent =
   | { type: 'text'; text: string }                  // streamed reasoning token
   | { type: 'verdict'; result: ProofOfTradeResult } // final structured verdict
-  | { type: 'tx'; hash: string; status: PassportStatus; chain: ChainMode; explorerUrl: string | null }
+  | { type: 'tx'; hash: string; status: PassportStatus; chain: ChainMode; explorerUrl: string | null; ref?: string }
   | { type: 'error'; message: string }
   | { type: 'done' }
 

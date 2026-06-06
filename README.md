@@ -4,9 +4,9 @@
 
 # FAANSAIL
 
-### Compliance-native settlement for the Hong Kong corridor
+### AI-verified trade · smart-contract escrow · instant stablecoin settlement
 
-**An AI gate verifies the *trade*, the escrow settles or *refuses* on-chain in seconds, and one event reconciles every ledger.**
+**Compliance-native payment infrastructure for the Hong Kong corridor — the bad trade is *refused* before a cent moves; the good one settles in seconds on a stablecoin rail and reconciles itself off one on-chain event.**
 
 [![Next.js 15](https://img.shields.io/badge/Next.js_15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![Solidity 0.8](https://img.shields.io/badge/Solidity_0.8-363636?logo=solidity&logoColor=white)](https://soliditylang.org)

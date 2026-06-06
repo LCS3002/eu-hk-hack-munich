@@ -152,6 +152,7 @@ export async function POST(req: Request) {
           status: tx.status,
           chain: tx.chain,
           explorerUrl: tx.explorerUrl,
+          ref: tx.onchainRef,
         })
       } catch {
         // settleOnChain already self-heals to a mock tx, but guard anyway.

@@ -86,7 +86,7 @@ export default function TeamPage() {
         </div>
         <div style={{ fontFamily: 'var(--font-hero)', fontSize: 38, fontWeight: 700, letterSpacing: '0.04em' }}>FAANSAIL</div>
         <div style={{ fontSize: 12, color: 'var(--text-2)', letterSpacing: '0.02em' }}>
-          Payment infrastructure for the Hong Kong settlement corridor
+          Compliance-native stablecoin settlement for the Hong Kong corridor
         </div>
       </div>
 

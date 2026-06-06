@@ -432,7 +432,7 @@ export default function FaanSailHero({ onEnter }: { onEnter: () => void }) {
         >
           <div className="fs-eyebrow">
             <span className="fs-eyebrow-rule" />
-            PAYMENT INFRASTRUCTURE · THE HONG KONG CORRIDOR
+            COMPLIANCE-NATIVE STABLECOIN SETTLEMENT · THE HONG KONG CORRIDOR
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px, 1.6vw, 22px)' }}>
@@ -447,10 +447,11 @@ export default function FaanSailHero({ onEnter }: { onEnter: () => void }) {
           </h2>
 
           <p className="fs-sub">
-            An AI gate verifies the trade (invoice vs bill of lading), settlement
-            clears in seconds on the regulated stablecoin rail Hong Kong just
-            licensed, and every ledger reconciles itself. Proven live on the
-            Africa&ndash;China corridor &mdash; the hardest one.
+            An AI gate verifies the trade (invoice vs bill of lading), a
+            smart-contract escrow enforces the verdict, and settlement clears in
+            seconds on the regulated stablecoin rail Hong Kong just licensed &mdash;
+            the bad trade refused before a cent moves, every ledger reconciled off
+            one event. Proven live on the Africa&ndash;China corridor &mdash; the hardest one.
           </p>
 
           <div className="fs-creds">
