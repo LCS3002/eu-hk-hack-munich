@@ -28,3 +28,9 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Hardhat build output
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/
+

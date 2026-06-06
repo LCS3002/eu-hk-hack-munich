@@ -1,0 +1,6 @@
+{
+  "usdc": "0x4dA689E28D7C99C624a7e4280C06e1fF59937be2",
+  "escrow": "0x9527bAc8dDf0A3d3B42Af0F0C11F48fe1253540E",
+  "oracle": "0xd2c3e783655B8050256f3C127CC258af91C68Cb0",
+  "network": "sepolia"
+}
