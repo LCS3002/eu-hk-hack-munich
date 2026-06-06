@@ -35,3 +35,6 @@ contracts/cache/
 contracts/typechain-types/
 
 .gstack/
+
+*.tsbuildinfo
+

@@ -24,11 +24,24 @@ const CREDENTIALS = [
   'COMPLIANCE-GATED',
 ] as const
 
-// Corridor cities (value-flow, not a route): Lagos → Hong Kong → Shenzhen
-const CORRIDOR = [
-  { name: 'LAGOS',     sub: 'APAPA PORT',        coord: '6.45°N   3.38°E',   tag: 'ORIGIN',    lat: 6.45,  lon: 3.38   },
-  { name: 'HONG KONG', sub: 'SETTLEMENT RAIL',   coord: '22.30°N  114.17°E', tag: 'CLEARING',  lat: 22.30, lon: 114.17 },
-] as const
+// Corridor cities (value-flow, not a route): Lagos → Hong Kong → Shenzhen.
+// Only Lagos + Hong Kong are LABELLED. Shenzhen (~20km from HK) is an arc-only
+// waypoint so the value line reaches the full Africa→China span without a
+// label that would overlap Hong Kong's.
+const LAGOS     = { name: 'LAGOS',     sub: 'APAPA PORT',      coord: '6.45°N   3.38°E',   tag: 'ORIGIN',   lat: 6.45,  lon: 3.38   } as const
+const HONG_KONG = { name: 'HONG KONG', sub: 'SETTLEMENT RAIL', coord: '22.30°N  114.17°E', tag: 'CLEARING', lat: 22.30, lon: 114.17 } as const
+const SHENZHEN  = { lat: 22.48, lon: 113.91 } as const
+// Full arc path (the CatmullRom curve runs through all three points).
+const CORRIDOR_PATH = [LAGOS, HONG_KONG, SHENZHEN] as const
+// Only these two are labelled.
+const CORRIDOR = [LAGOS, HONG_KONG] as const
+
+// Resting orientation (Euler XYZ) that brings BOTH Lagos and Hong Kong to the
+// front of the globe — Lagos on the left, HK on the right, equal depth — so the
+// Africa→East-Asia corridor faces the viewer and HK is clearly visible.
+const REST_X = 0.35
+const REST_Y = 2.15
+const REST_Z = 0.05
 
 // ── Geo helpers ───────────────────────────────────────────────────────────────
 const isLand = (phi: number, theta: number) => {
@@ -74,8 +87,11 @@ function latLonToVec(lat: number, lon: number, r: number): [number, number, numb
   ]
 }
 
-// ── City marker (pulsing dot + rings) — plain transparency, no AdditiveBlending ─
-function CityMarker({ lat, lon, radius }: { lat: number; lon: number; radius: number }) {
+// ── City marker — two styles, plain transparency (no AdditiveBlending) ────────
+//   hub=false (Lagos): a single small red dot, gently pulsing.
+//   hub=true  (Hong Kong): the settlement hub — a larger center dot plus two
+//   pulsing concentric rings, clearly distinct from the plain origin dot.
+function CityMarker({ lat, lon, radius, hub = false }: { lat: number; lon: number; radius: number; hub?: boolean }) {
   const dotRef = useRef<THREE.Mesh>(null)
   const ring1  = useRef<THREE.Mesh>(null)
   const ring2  = useRef<THREE.Mesh>(null)
@@ -95,47 +111,83 @@ function CityMarker({ lat, lon, radius }: { lat: number; lon: number; radius: nu
     }
     if (ring1.current) {
       const mat = ring1.current.material as THREE.MeshBasicMaterial
-      mat.opacity = 0.45 + 0.25 * Math.sin(t * 2.5 + 0.5)
-      ring1.current.scale.setScalar(1.0 + 0.08 * Math.sin(t * 2.5))
+      mat.opacity = 0.45 + 0.30 * Math.sin(t * 2.5 + 0.5)
+      ring1.current.scale.setScalar(1.0 + 0.14 * Math.sin(t * 2.5))
     }
     if (ring2.current) {
       const mat = ring2.current.material as THREE.MeshBasicMaterial
-      mat.opacity = 0.20 + 0.12 * Math.sin(t * 2.0 + 1.0)
-      ring2.current.scale.setScalar(1.0 + 0.12 * Math.sin(t * 2.0 + 0.8))
+      mat.opacity = 0.30 + 0.20 * Math.sin(t * 2.0 + 1.0)
+      ring2.current.scale.setScalar(1.0 + 0.22 * Math.sin(t * 2.0 + 0.8))
     }
   })
 
+  // Plain origin dot (Lagos).
+  if (!hub) {
+    return (
+      <group position={pos}>
+        <mesh ref={dotRef}>
+          <sphereGeometry args={[0.034, 10, 10]} />
+          <meshBasicMaterial color="#c1121f" transparent opacity={0.95} />
+        </mesh>
+      </group>
+    )
+  }
+
+  // Settlement hub (Hong Kong): bigger dot + two pulsing concentric rings.
   return (
     <group position={pos}>
       <mesh ref={dotRef}>
-        <sphereGeometry args={[0.030, 8, 8]} />
-        <meshBasicMaterial color="#c1121f" transparent opacity={0.95} />
+        <sphereGeometry args={[0.052, 12, 12]} />
+        <meshBasicMaterial color="#c1121f" transparent opacity={0.98} />
       </mesh>
       <mesh ref={ring1}>
-        <torusGeometry args={[0.058, 0.006, 8, 32]} />
-        <meshBasicMaterial color="#c1121f" transparent opacity={0.5} depthWrite={false} />
+        <torusGeometry args={[0.085, 0.009, 8, 40]} />
+        <meshBasicMaterial color="#c1121f" transparent opacity={0.6} depthWrite={false} />
       </mesh>
       <mesh ref={ring2}>
-        <torusGeometry args={[0.10, 0.004, 8, 32]} />
-        <meshBasicMaterial color="#c1121f" transparent opacity={0.25} depthWrite={false} />
+        <torusGeometry args={[0.145, 0.006, 8, 40]} />
+        <meshBasicMaterial color="#c1121f" transparent opacity={0.32} depthWrite={false} />
       </mesh>
     </group>
   )
 }
 
 // ── Corridor label card (light) — static, no ship / route-progress logic ───────
-function CorridorLabel({ city, radius }: { city: typeof CORRIDOR[number]; radius: number }) {
+//   The Hong Kong label (hub=true) is anchored right AT the marker's 3D coords
+//   and nudged downward in screen space so the card sits just under the hub —
+//   it no longer floats away from the actual marker.
+function CorridorLabel({ city, radius, hub = false }: { city: typeof CORRIDOR[number]; radius: number; hub?: boolean }) {
+  // Hub label anchors at the marker surface (tight); origin label sits further out.
   const pos = useMemo(() => {
-    const [x, y, z] = latLonToVec(city.lat, city.lon, radius + 0.52)
+    const [x, y, z] = latLonToVec(city.lat, city.lon, radius + (hub ? 0.12 : 0.52))
     return new THREE.Vector3(x, y, z)
-  }, [city, radius])
+  }, [city, radius, hub])
 
   return (
-    <Html position={pos} center distanceFactor={6}>
-      <div style={{ fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)', pointerEvents: 'none', userSelect: 'none', minWidth: 170 }}>
+    <Html position={pos} center distanceFactor={6} zIndexRange={[20, 0]}>
+      <div
+        style={{
+          fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          minWidth: hub ? 178 : 170,
+          // Hub: push the card down so it sits right under the HK marker.
+          transform: hub ? 'translateY(58px)' : 'none',
+        }}
+      >
+        {/* Hub: connector points UP from the card to the marker above it. */}
+        {hub && (
+          <>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#c1121f', boxShadow: '0 0 6px rgba(193,18,31,0.6)', margin: '0 auto' }} />
+            <div style={{ width: 1, height: 12, background: 'linear-gradient(to top, rgba(0,0,0,0.18), transparent)', margin: '0 auto' }} />
+          </>
+        )}
         <div style={{
           background: 'rgba(255,255,255,0.96)',
-          border: '1px solid rgba(0,0,0,0.10)',
+          borderTop: hub ? '2px solid #c1121f' : '1px solid rgba(0,0,0,0.10)',
+          borderRight: '1px solid rgba(0,0,0,0.10)',
+          borderBottom: '1px solid rgba(0,0,0,0.10)',
+          borderLeft: '1px solid rgba(0,0,0,0.10)',
           clipPath: 'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',
           boxShadow: '0 6px 18px rgba(0,0,0,0.10)',
         }}>
@@ -145,7 +197,11 @@ function CorridorLabel({ city, radius }: { city: typeof CORRIDOR[number]; radius
             </span>
             <span style={{
               fontSize: 7, color: '#c1121f', letterSpacing: '0.1em',
-              background: 'rgba(193,18,31,0.08)', border: '1px solid rgba(193,18,31,0.25)',
+              background: 'rgba(193,18,31,0.08)',
+              borderTop: '1px solid rgba(193,18,31,0.25)',
+              borderRight: '1px solid rgba(193,18,31,0.25)',
+              borderBottom: '1px solid rgba(193,18,31,0.25)',
+              borderLeft: '1px solid rgba(193,18,31,0.25)',
               padding: '1px 5px', borderRadius: 2,
             }}>
               {city.tag}
@@ -160,20 +216,27 @@ function CorridorLabel({ city, radius }: { city: typeof CORRIDOR[number]; radius
             </div>
           </div>
         </div>
-        <div style={{ width: 1, height: 12, background: 'linear-gradient(to bottom, rgba(0,0,0,0.18), transparent)', margin: '0 auto' }} />
-        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#c1121f', boxShadow: '0 0 6px rgba(193,18,31,0.6)', margin: '0 auto' }} />
+        {/* Origin (Lagos): connector points DOWN from the card to the marker. */}
+        {!hub && (
+          <>
+            <div style={{ width: 1, height: 12, background: 'linear-gradient(to bottom, rgba(0,0,0,0.18), transparent)', margin: '0 auto' }} />
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#c1121f', boxShadow: '0 0 6px rgba(193,18,31,0.6)', margin: '0 auto' }} />
+          </>
+        )}
       </div>
     </Html>
   )
 }
 
-// ── Static corridor arc (value-flow line between the three cities) ─────────────
+// ── Static corridor arc (value-flow line Lagos → Hong Kong → Shenzhen) ────────
+// All three points feed the CatmullRom curve so a clearly visible red line spans
+// the full Africa→China corridor through Hong Kong, lifted off the surface.
 function CorridorArc({ radius }: { radius: number }) {
   const geometry = useMemo(() => {
-    const pts = CORRIDOR.map(c => new THREE.Vector3(...latLonToVec(c.lat, c.lon, radius + 0.06)))
+    const pts = CORRIDOR_PATH.map(c => new THREE.Vector3(...latLonToVec(c.lat, c.lon, radius + 0.06)))
     const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.4)
     // Lift the arc slightly off the surface so it reads as a corridor, not a coastline
-    const sampled = curve.getPoints(120).map((p, i, arr) => {
+    const sampled = curve.getPoints(140).map((p, i, arr) => {
       const f = i / (arr.length - 1)
       const lift = 1 + 0.06 * Math.sin(Math.PI * f)
       return p.clone().multiplyScalar(lift)
@@ -184,7 +247,7 @@ function CorridorArc({ radius }: { radius: number }) {
   return (
     <line>
       <primitive object={geometry} attach="geometry" />
-      <lineBasicMaterial color="#c1121f" transparent opacity={0.55} />
+      <lineBasicMaterial color="#c1121f" transparent opacity={0.7} />
     </line>
   )
 }
@@ -250,7 +313,13 @@ function VoxelGlobe({ isMobile, booting }: { isMobile: boolean; booting: boolean
 
   useFrame((state, delta) => {
     if (!groupRef.current) return
-    groupRef.current.rotation.y += delta * 0.05
+    // Resting orientation biased so the Lagos→Hong Kong corridor faces the
+    // viewer (HK clearly visible). Instead of a full spin that would carry the
+    // corridor to the back, gently oscillate around the front-facing yaw.
+    void delta
+    groupRef.current.rotation.x = REST_X
+    groupRef.current.rotation.z = REST_Z
+    groupRef.current.rotation.y = REST_Y + Math.sin(state.clock.elapsedTime * 0.16) * 0.18
 
     if (booting && !bootingRef.current) {
       bootingRef.current = true
@@ -282,7 +351,7 @@ function VoxelGlobe({ isMobile, booting }: { isMobile: boolean; booting: boolean
   })
 
   return (
-    <group ref={groupRef} position={[2.5, 0, 0]} rotation={[0, 0, 0.2]}>
+    <group ref={groupRef} position={[2.5, 0, 0]} rotation={[REST_X, REST_Y, REST_Z]}>
       <instancedMesh ref={meshRef} args={[undefined, undefined, positions.length / 3]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial toneMapped={false} />
@@ -302,12 +371,13 @@ function VoxelGlobe({ isMobile, booting }: { isMobile: boolean; booting: boolean
 
       <CorridorArc radius={radius} />
 
-      {CORRIDOR.map(city => (
-        <CityMarker key={city.name} lat={city.lat} lon={city.lon} radius={radius} />
-      ))}
-      {CORRIDOR.map(city => (
-        <CorridorLabel key={city.name} city={city} radius={radius} />
-      ))}
+      {/* Lagos: plain origin dot. Hong Kong: distinct settlement hub. */}
+      <CityMarker lat={LAGOS.lat} lon={LAGOS.lon} radius={radius} />
+      <CityMarker lat={HONG_KONG.lat} lon={HONG_KONG.lon} radius={radius} hub />
+
+      {/* Labels: only Lagos + Hong Kong (HK anchored under its marker). */}
+      <CorridorLabel city={LAGOS} radius={radius} />
+      <CorridorLabel city={HONG_KONG} radius={radius} hub />
     </group>
   )
 }
