@@ -770,7 +770,24 @@ export default function JourneyConsole({
     >
       <Styles />
 
-      {/* ════════ Flow diagram — phase rail + live detail (the centerpiece) ════════ */}
+      {/* ════════ Globe — large background that bleeds into the whole whitespace ════════ */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', left: '50%', bottom: '-20%', transform: 'translateX(-50%)', width: 'min(1080px, 140%)', aspectRatio: '1 / 1' }}>
+          <Canvas camera={{ position: [0, 0, 5.4], fov: 42 }} gl={{ alpha: true, antialias: true }} style={{ position: 'absolute', inset: 0 }}>
+            <ambientLight intensity={0.7} />
+            <VoxelGlobe progress={pulseProgress} blocked={pulseBlocked} active={active} />
+          </Canvas>
+        </div>
+        {/* readability scrim — opaque at the top (behind the flow), clears toward the globe */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, var(--bg-base) 0%, rgba(250,250,250,0.84) 24%, rgba(250,250,250,0.32) 48%, rgba(250,250,250,0) 70%)' }} />
+        {/* corridor caption, bottom-center */}
+        <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--accent)' }}>Settlement corridor</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-3)' }}>Lagos → Hong Kong → Shenzhen</span>
+        </div>
+      </div>
+
+      {/* ════════ Foreground — the Grasshopper flow + live detail, over the globe ════════ */}
       <div
         style={{
           position: 'relative',
@@ -785,13 +802,25 @@ export default function JourneyConsole({
         {idle ? (
           <IdleCenter />
         ) : (
-          <div style={{ width: '100%', maxWidth: 860, padding: '26px 32px 18px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+          <div style={{ width: '100%', maxWidth: 860, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <PhaseRail statuses={phaseStatuses} />
 
             {phase === 'settled' ? (
               <PaymentComplete amount={amount} tx={tx} settleSecs={settleSecs} confirmedBlock={confirmedBlock} />
             ) : (
-              <>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 20,
+                  padding: '22px 24px',
+                  background: 'rgba(255,255,255,0.82)',
+                  backdropFilter: 'blur(7px)',
+                  WebkitBackdropFilter: 'blur(7px)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                }}
+              >
                 {/* Payment lane — who pays whom, how much */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
@@ -823,35 +852,10 @@ export default function JourneyConsole({
                 </Section>
 
                 <ReconLine settled={settled} blocked={blocked} />
-              </>
+              </div>
             )}
           </div>
         )}
-      </div>
-
-      {/* ════════ Globe peeking from the bottom-middle ════════ */}
-      <div
-        style={{
-          position: 'relative',
-          flex: '0 0 32%',
-          minHeight: 0,
-          overflow: 'hidden',
-          borderTop: '1px solid var(--border)',
-          background: 'radial-gradient(130% 150% at 50% 135%, #ffffff 0%, var(--bg-base) 55%, var(--bg-sunken) 100%)',
-        }}
-      >
-        {/* corridor label, centered above the dome */}
-        <div style={{ position: 'absolute', top: 13, left: '50%', transform: 'translateX(-50%)', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, pointerEvents: 'none' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--accent)' }}>Settlement corridor</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-3)' }}>Lagos → Hong Kong → Shenzhen</span>
-        </div>
-        {/* the globe — large, anchored low so its top arc peeks up from the bottom */}
-        <div style={{ position: 'absolute', left: '50%', bottom: '-60%', transform: 'translateX(-50%)', width: 'min(640px, 150%)', aspectRatio: '1 / 1', pointerEvents: 'none' }}>
-          <Canvas camera={{ position: [0, 0, 5.4], fov: 42 }} gl={{ alpha: true, antialias: true }} style={{ position: 'absolute', inset: 0 }}>
-            <ambientLight intensity={0.7} />
-            <VoxelGlobe progress={pulseProgress} blocked={pulseBlocked} active={active} />
-          </Canvas>
-        </div>
       </div>
     </div>
   )
@@ -862,14 +866,19 @@ function IdleCenter() {
   return (
     <div
       style={{
-        flex: 1,
+        margin: 'auto',
+        maxWidth: 470,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
         textAlign: 'center',
-        gap: 16,
-        padding: '40px',
+        gap: 15,
+        padding: '34px 42px',
+        background: 'rgba(250,250,250,0.80)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        border: '1px solid var(--border)',
+        borderRadius: 14,
       }}
     >
       <span
@@ -1507,54 +1516,71 @@ function ReconLine({ settled, blocked }: { settled: boolean; blocked: boolean })
 type PStatus = 'pending' | 'active' | 'done' | 'refused'
 const PHASE_LABELS = ['Trade', 'AI gate', 'Escrow', 'Release', 'Settled']
 
+// Grasshopper-style node-and-wire flow: component boxes joined by bezier wires.
 function PhaseRail({ statuses }: { statuses: PStatus[] }) {
-  const last = PHASE_LABELS.length - 1
+  const cx = [82, 260, 440, 620, 798]
+  const cy = [54, 96, 54, 96, 54]
+  const hw = 66
+  const hh = 21
+  const colorOf = (s: PStatus) =>
+    s === 'refused' ? 'var(--blocked)' : s === 'done' ? 'var(--cleared)' : s === 'active' ? 'var(--accent)' : 'var(--text-3)'
+  const fillOf = (s: PStatus) =>
+    s === 'refused' ? 'rgba(193,18,31,0.06)' : s === 'done' ? 'rgba(21,128,61,0.08)' : s === 'active' ? 'var(--accent-soft)' : 'var(--bg-surface)'
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
-      {PHASE_LABELS.map((label, i) => {
+    <svg viewBox="0 0 880 150" width="100%" style={{ height: 'auto', display: 'block', overflow: 'visible' }} role="img" aria-label="Settlement flow">
+      {/* wires (drawn first, behind the nodes) */}
+      {[0, 1, 2, 3].map((i) => {
         const s = statuses[i] ?? 'pending'
-        const color =
-          s === 'refused' ? 'var(--blocked)'
-          : s === 'done' ? 'var(--cleared)'
-          : s === 'active' ? 'var(--accent)'
-          : 'var(--text-3)'
-        const filled = s === 'done' || s === 'refused'
-        const passed = filled // outgoing connector lights once this node is resolved
+        const passed = s === 'done' || s === 'refused'
+        const x1 = cx[i] + hw
+        const y1 = cy[i]
+        const x2 = cx[i + 1] - hw
+        const y2 = cy[i + 1]
+        const dx = Math.abs(x2 - x1) * 0.6 + 14
         return (
-          <div key={label} style={{ display: 'flex', alignItems: 'flex-start', flex: i < last ? 1 : '0 0 auto', minWidth: 0 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, flexShrink: 0, width: 62 }}>
-              <span
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: filled ? '#fff' : color,
-                  background: filled ? color : 'var(--bg-surface)',
-                  border: `1.5px solid ${color}`,
-                  boxShadow: s === 'active' ? '0 0 0 4px rgba(193,18,31,0.12)' : 'none',
-                  animation: s === 'active' ? 'fs-pulse 1.5s ease-in-out infinite' : 'none',
-                  transition: 'background 0.3s ease, color 0.3s ease, border-color 0.3s ease',
-                }}
-              >
-                {s === 'done' ? '✓' : s === 'refused' ? '✕' : i + 1}
-              </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: s === 'pending' ? 'var(--text-3)' : color, textAlign: 'center', whiteSpace: 'nowrap', transition: 'color 0.3s ease' }}>
-                {label}
-              </span>
-            </div>
-            {i < last && (
-              <div style={{ flex: 1, height: 1.5, marginTop: 12.5, minWidth: 14, background: passed ? color : 'var(--border)', transition: 'background 0.4s ease' }} />
-            )}
-          </div>
+          <path
+            key={`w${i}`}
+            d={`M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`}
+            fill="none"
+            stroke={passed ? colorOf(s) : 'var(--border-strong)'}
+            strokeWidth={passed ? 2.25 : 1.5}
+            strokeLinecap="round"
+            style={{ transition: 'stroke 0.4s ease' }}
+          />
         )
       })}
-    </div>
+      {/* component nodes */}
+      {PHASE_LABELS.map((label, i) => {
+        const s = statuses[i] ?? 'pending'
+        const c = colorOf(s)
+        const glyph = s === 'done' ? '✓' : s === 'refused' ? '✕' : String(i + 1)
+        return (
+          <g key={label}>
+            {i > 0 && <circle cx={cx[i] - hw} cy={cy[i]} r={3.5} fill={c} style={{ transition: 'fill 0.3s ease' }} />}
+            {i < 4 && <circle cx={cx[i] + hw} cy={cy[i]} r={3.5} fill={c} style={{ transition: 'fill 0.3s ease' }} />}
+            <rect
+              x={cx[i] - hw}
+              y={cy[i] - hh}
+              width={hw * 2}
+              height={hh * 2}
+              rx={9}
+              fill={fillOf(s)}
+              stroke={c}
+              strokeWidth={s === 'active' ? 2.25 : 1.5}
+              style={{ transition: 'fill 0.3s ease, stroke 0.3s ease' }}
+            />
+            {/* status chip on the left, like a Grasshopper input param */}
+            <circle cx={cx[i] - hw + 19} cy={cy[i]} r={9.5} fill={s === 'pending' ? 'var(--bg-base)' : c} stroke={c} strokeWidth={1.25} style={{ transition: 'fill 0.3s ease' }} />
+            <text x={cx[i] - hw + 19} y={cy[i] + 0.5} textAnchor="middle" dominantBaseline="central" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, fill: s === 'pending' ? c : '#ffffff' }}>
+              {glyph}
+            </text>
+            <text x={cx[i] - hw + 35} y={cy[i] + 0.5} dominantBaseline="central" style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.05em', fill: s === 'pending' ? 'var(--text-3)' : 'var(--text-1)' }}>
+              {label.toUpperCase()}
+            </text>
+          </g>
+        )
+      })}
+    </svg>
   )
 }
 
@@ -1579,7 +1605,9 @@ function PaymentComplete({
         flexDirection: 'column',
         gap: 18,
         padding: '22px 24px',
-        background: 'rgba(21,128,61,0.06)',
+        background: 'rgba(237,247,240,0.93)',
+        backdropFilter: 'blur(7px)',
+        WebkitBackdropFilter: 'blur(7px)',
         borderTop: '1px solid var(--cleared)',
         borderRight: '1px solid var(--cleared)',
         borderBottom: '1px solid var(--cleared)',
