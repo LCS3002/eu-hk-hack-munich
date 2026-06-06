@@ -68,7 +68,9 @@ BLOCK if ANY of the following is true:
 
 CLEAR only if every single check passes with no red flags.
 
-After your prose reasoning, end with EXACTLY one line:
+IMPORTANT: Keep your reasoning CONCISE — 2-3 sentences per check maximum. You must always reach the VERDICT_JSON line within your token budget. Never end mid-sentence.
+
+After your prose reasoning, end with EXACTLY one line and nothing after it:
 VERDICT_JSON: {"verdict":"CLEAR"|"BLOCK","riskScore":<integer 0-100>,"flags":[<short strings, one per red flag>]}
 
 riskScore: 0=clean, 100=extremely high risk. flags is empty array only if fully clean. Output raw JSON, no code fences.`
@@ -359,7 +361,7 @@ async function streamWithUploadedDocs(
 
   const mStream = client.messages.stream({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1400,
+    max_tokens: 2000,
     system: UPLOAD_SYSTEM_PROMPT,
     messages: [{ role: 'user', content }],
   })
@@ -405,8 +407,15 @@ async function streamWithUploadedDocs(
 
   const parsed = parseVerdict(full)
   if (!parsed) {
-    // Return a generic result if verdict parsing fails
-    return CLEAN_TRADE.fixtureResult
+    // Verdict line was cut off (token budget) or malformed.
+    // Fail SAFE: if reasoning was generated but verdict is missing,
+    // default to BLOCK so we never accidentally approve a bad trade.
+    return {
+      verdict: 'BLOCK' as const,
+      riskScore: 99,
+      flags: ['Compliance gate could not produce a verdict — settlement blocked for manual review'],
+      checks: [],
+    }
   }
   return {
     verdict: parsed.verdict,
