@@ -1012,73 +1012,44 @@ function DocumentPreview({
 }) {
   if (!scenario && !uploadedDocs) return null
 
-  // Upload flow — show filenames only (no structured fields to compare yet)
+  // Upload flow — embed actual document content
   if (uploadedDocs && !scenario) {
     return (
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 8,
-          marginBottom: 12,
-        }}
-      >
-        {[
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+        {([
           { label: 'Invoice', doc: uploadedDocs.invoice },
           { label: 'Bill of Lading', doc: uploadedDocs.billOfLading },
-        ].map(({ label, doc }) => (
-          <div
-            key={label}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 13px',
-              background: 'var(--bg-sunken)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            <span style={{ fontSize: 16, flexShrink: 0 }}>
-              {doc.mediaType === 'image' ? '🖼' : doc.mediaType === 'pdf' ? '📑' : '📄'}
-            </span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 7.5,
-                  fontWeight: 700,
-                  letterSpacing: '0.16em',
-                  textTransform: 'uppercase',
-                  color: 'var(--accent)',
-                }}
-              >
+        ] as const).map(({ label, doc }) => (
+          <div key={label} style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 10px', background: 'var(--bg-sunken)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 7.5, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--accent)' }}>
                 {label}
               </span>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10.5,
-                  color: 'var(--text-1)',
-                  fontWeight: 600,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
                 {doc.name}
               </span>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 8.5,
-                  color: 'var(--text-3)',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {doc.mediaType === 'image' ? 'Claude Vision'
-                  : doc.mediaType === 'pdf' ? 'Claude Document'
-                  : 'Text extraction'}
-              </span>
+            </div>
+            {/* Content */}
+            <div style={{ height: 260, overflow: 'hidden', background: '#e8e8e8' }}>
+              {doc.mediaType === 'pdf' ? (
+                <iframe
+                  src={`data:application/pdf;base64,${doc.content}`}
+                  style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                  title={doc.name}
+                />
+              ) : doc.mediaType === 'image' ? (
+                // For images, detect format from name
+                <img
+                  src={`data:${doc.name.endsWith('.png') ? 'image/png' : doc.name.endsWith('.webp') ? 'image/webp' : 'image/jpeg'};base64,${doc.content}`}
+                  alt={doc.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: '#fff' }}
+                />
+              ) : (
+                <pre style={{ margin: 0, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 9.5, lineHeight: 1.6, color: 'var(--text-2)', overflowY: 'auto', height: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: 'var(--bg-sunken)' }}>
+                  {doc.content}
+                </pre>
+              )}
             </div>
           </div>
         ))}
