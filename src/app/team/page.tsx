@@ -9,6 +9,13 @@ const TEAM = [
     linkedin: 'https://www.linkedin.com/in/yichenhsu/',
   },
   {
+    name: 'Miloš Preradović',
+    study: 'Economics and Engineering',
+    at: 'TU Vienna',
+    github: 'https://github.com/prmilos',
+    linkedin: 'https://www.linkedin.com/in/milo%C5%A1-preradovi%C4%87-9a0329387/',
+  },
+  {
     name: 'Lorenz Huber',
     study: 'Architecture',
     at: 'UCL · London',
