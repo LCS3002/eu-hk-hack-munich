@@ -1,4 +1,4 @@
-# FaanSail
+# FaanSail ⛵
 
 > **Payment infrastructure that mitigates liquidity and compliance risk on the Africa–China trade corridor — via Hong Kong.**
 
