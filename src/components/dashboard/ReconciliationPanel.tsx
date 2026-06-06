@@ -144,7 +144,9 @@ function LedgerRow({ party, tx }: { party: Party; tx: ReconciliationTx | null })
     <div
       style={{
         background: 'var(--bg-sunken)',
-        border: '1px solid var(--border)',
+        borderTop: '1px solid var(--border)',
+        borderRight: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
         borderLeft: `2px solid ${hasEvent ? rowColor : 'var(--border-strong)'}`,
         borderRadius: 'var(--panel-radius)',
         padding: '10px 12px',

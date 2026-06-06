@@ -131,7 +131,9 @@ export default function RegulatorView({ scenario, result, tx }: RegulatorViewPro
               style={{
                 marginTop: 8,
                 background: 'var(--bg-sunken)',
-                border: '1px solid var(--border)',
+                borderTop: '1px solid var(--border)',
+                borderRight: '1px solid var(--border)',
+                borderBottom: '1px solid var(--border)',
                 borderLeft: `2px solid ${statusColor}`,
                 borderRadius: 'var(--panel-radius)',
                 padding: '10px 12px',
