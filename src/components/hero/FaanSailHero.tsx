@@ -474,6 +474,9 @@ export default function FaanSailHero({ onEnter }: { onEnter: () => void }) {
             >
               VIEW REPO
             </a>
+            <a href="/team" className="fs-cta-secondary">
+              TEAM
+            </a>
           </div>
         </div>
       </section>

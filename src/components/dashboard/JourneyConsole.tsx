@@ -715,7 +715,6 @@ export default function JourneyConsole({
   const settling = phase === 'settling'
   const settled = phase === 'settled'
   const verifying = phase === 'verifying'
-  const isClearPath = cleared || settling || settled
   const active = !idle
 
   // Value-pulse progress along Lagos(0) → HK(~0.5) → Shenzhen(1).
@@ -742,6 +741,20 @@ export default function JourneyConsole({
       : result.flags[0] ?? failedChecks[0]?.detail ?? 'Cross-document checks failed'
     : null
 
+  // Live status for each phase of the rail (the flow diagram across the top).
+  const phaseStatuses: PStatus[] =
+    phase === 'depart' || phase === 'verifying'
+      ? ['done', 'active', 'pending', 'pending', 'pending']
+      : phase === 'cleared'
+        ? ['done', 'done', 'active', 'pending', 'pending']
+        : phase === 'settling'
+          ? ['done', 'done', 'done', 'active', 'pending']
+          : phase === 'settled'
+            ? ['done', 'done', 'done', 'done', confirmedBlock != null ? 'done' : 'active']
+            : phase === 'blocked'
+              ? ['done', 'refused', 'done', 'refused', 'pending']
+              : ['pending', 'pending', 'pending', 'pending', 'pending']
+
   return (
     <div
       style={{
@@ -750,206 +763,111 @@ export default function JourneyConsole({
         height: '100%',
         minHeight: 0,
         display: 'flex',
+        flexDirection: 'column',
         background: 'var(--bg-base)',
         overflow: 'hidden',
       }}
     >
       <Styles />
 
-      {/* ════════════════ LEFT — the 3D globe (centerpiece) ════════════════ */}
+      {/* ════════ Flow diagram — phase rail + live detail (the centerpiece) ════════ */}
       <div
         style={{
           position: 'relative',
-          flex: '1 1 58%',
-          minWidth: 0,
-          height: '100%',
-          overflow: 'hidden',
-          background:
-            'radial-gradient(120% 90% at 42% 42%, #ffffff 0%, var(--bg-base) 60%, var(--bg-sunken) 100%)',
-        }}
-      >
-        {/* Corridor overline — calm, top-left, no overlap with the globe center */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 26,
-            left: 30,
-            zIndex: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 5,
-            pointerEvents: 'none',
-          }}
-        >
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '0.24em',
-              textTransform: 'uppercase',
-              color: 'var(--accent)',
-            }}
-          >
-            Settlement Corridor
-          </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 8.5,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: 'var(--text-3)',
-            }}
-          >
-            Lagos → Hong Kong → Shenzhen
-          </span>
-        </div>
-
-        {/* Phase ticker — bottom-left, quiet */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 24,
-            left: 30,
-            zIndex: 2,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 9,
-            pointerEvents: 'none',
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: blocked
-                ? 'var(--blocked)'
-                : isClearPath
-                  ? 'var(--cleared)'
-                  : verifying || phase === 'depart'
-                    ? 'var(--accent)'
-                    : 'var(--text-3)',
-              animation:
-                verifying || settling || phase === 'depart'
-                  ? 'fs-pulse 1.4s ease-in-out infinite'
-                  : 'none',
-            }}
-          />
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 9.5,
-              fontWeight: 600,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: blocked
-                ? 'var(--blocked)'
-                : isClearPath
-                  ? 'var(--cleared)'
-                  : verifying || phase === 'depart'
-                    ? 'var(--accent)'
-                    : 'var(--text-3)',
-            }}
-          >
-            {phaseLabel(phase)}
-          </span>
-        </div>
-
-        <Canvas
-          camera={{ position: [0, 0, 5.4], fov: 42 }}
-          gl={{ alpha: true, antialias: true }}
-          style={{ position: 'absolute', inset: 0 }}
-        >
-          <ambientLight intensity={0.7} />
-          <VoxelGlobe progress={pulseProgress} blocked={pulseBlocked} active={active} />
-        </Canvas>
-      </div>
-
-      {/* ════════════════ RIGHT — the settlement panel ════════════════ */}
-      <div
-        style={{
-          position: 'relative',
-          flex: '0 0 44%',
-          maxWidth: 600,
-          height: '100%',
+          zIndex: 2,
+          flex: '1 1 auto',
           minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'var(--bg-surface)',
-          borderLeft: '1px solid var(--border)',
           overflowY: 'auto',
+          display: 'flex',
+          justifyContent: 'center',
         }}
       >
         {idle ? (
-          <IdlePanel />
+          <IdleCenter />
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 22,
-              padding: '30px 36px 38px',
-            }}
-          >
-            {/* 1 ── Trade ─────────────────────────────────────────────── */}
-            {/* Compact payment lane — who pays whom, how much. One glance. */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
-                <span style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>{buyerName}</span>
-                <span style={{ color: 'var(--text-3)', fontSize: 12, flexShrink: 0 }}>→</span>
-                <span style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>{supplierName}</span>
-                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: 'var(--text-1)', flexShrink: 0 }}>{amount}</span>
-              </div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.04em', color: 'var(--text-3)' }}>
-                Lagos → Shenzhen{scenario?.invoice.invoiceRef ? ` · ${scenario.invoice.invoiceRef}` : ''}{scenario?.invoice.hsCode ? ` · HS ${scenario.invoice.hsCode}` : ''}
-              </span>
-            </div>
+          <div style={{ width: '100%', maxWidth: 860, padding: '26px 32px 18px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+            <PhaseRail statuses={phaseStatuses} />
 
-            {/* 2 ── AI verdict ────────────────────────────────────────── */}
-            <Section label="AI Compliance Gate">
-              <VerdictBlock
-                phase={phase}
-                result={result}
-                summaryLine={summaryLine}
-                error={error}
-              />
-            </Section>
+            {phase === 'settled' ? (
+              <PaymentComplete amount={amount} tx={tx} settleSecs={settleSecs} confirmedBlock={confirmedBlock} />
+            ) : (
+              <>
+                {/* Payment lane — who pays whom, how much */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+                    <span style={{ fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>{buyerName}</span>
+                    <span style={{ color: 'var(--text-3)', fontSize: 12, flexShrink: 0 }}>→</span>
+                    <span style={{ fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>{supplierName}</span>
+                    <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 700, color: 'var(--text-1)', flexShrink: 0 }}>{amount}</span>
+                  </div>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.04em', color: 'var(--text-3)' }}>
+                    Lagos → Shenzhen{scenario?.invoice.invoiceRef ? ` · ${scenario.invoice.invoiceRef}` : ''}{scenario?.invoice.hsCode ? ` · HS ${scenario.invoice.hsCode}` : ''}
+                  </span>
+                </div>
 
-            {/* 3 ── Settlement on the stablecoin rail (the real money flow) ─ */}
-            <Section label="Settlement · stablecoin rail">
-              <SettlementBlock
-                phase={phase}
-                tx={tx}
-                settleSecs={settleSecs}
-                amount={amount}
-                blocked={blocked}
-                settling={settling}
-                settled={settled}
-                confirmedBlock={confirmedBlock}
-              />
-            </Section>
+                <Section label="AI Compliance Gate">
+                  <VerdictBlock phase={phase} result={result} summaryLine={summaryLine} error={error} />
+                </Section>
 
-            {/* 4 ── Reconciliation ────────────────────────────────────── */}
-            <ReconLine settled={settled} blocked={blocked} />
+                <Section label="Settlement · stablecoin rail">
+                  <SettlementBlock
+                    phase={phase}
+                    tx={tx}
+                    settleSecs={settleSecs}
+                    amount={amount}
+                    blocked={blocked}
+                    settling={settling}
+                    settled={settled}
+                    confirmedBlock={confirmedBlock}
+                  />
+                </Section>
+
+                <ReconLine settled={settled} blocked={blocked} />
+              </>
+            )}
           </div>
         )}
+      </div>
+
+      {/* ════════ Globe peeking from the bottom-middle ════════ */}
+      <div
+        style={{
+          position: 'relative',
+          flex: '0 0 32%',
+          minHeight: 0,
+          overflow: 'hidden',
+          borderTop: '1px solid var(--border)',
+          background: 'radial-gradient(130% 150% at 50% 135%, #ffffff 0%, var(--bg-base) 55%, var(--bg-sunken) 100%)',
+        }}
+      >
+        {/* corridor label, centered above the dome */}
+        <div style={{ position: 'absolute', top: 13, left: '50%', transform: 'translateX(-50%)', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, pointerEvents: 'none' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--accent)' }}>Settlement corridor</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-3)' }}>Lagos → Hong Kong → Shenzhen</span>
+        </div>
+        {/* the globe — large, anchored low so its top arc peeks up from the bottom */}
+        <div style={{ position: 'absolute', left: '50%', bottom: '-60%', transform: 'translateX(-50%)', width: 'min(640px, 150%)', aspectRatio: '1 / 1', pointerEvents: 'none' }}>
+          <Canvas camera={{ position: [0, 0, 5.4], fov: 42 }} gl={{ alpha: true, antialias: true }} style={{ position: 'absolute', inset: 0 }}>
+            <ambientLight intensity={0.7} />
+            <VoxelGlobe progress={pulseProgress} blocked={pulseBlocked} active={active} />
+          </Canvas>
+        </div>
       </div>
     </div>
   )
 }
 
 // ─── Idle panel ────────────────────────────────────────────────────────────
-function IdlePanel() {
+function IdleCenter() {
   return (
     <div
       style={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'center',
+        textAlign: 'center',
         gap: 16,
         padding: '40px',
       }}
@@ -1585,23 +1503,139 @@ function ReconLine({ settled, blocked }: { settled: boolean; blocked: boolean })
   )
 }
 
-function phaseLabel(phase: Phase): string {
-  switch (phase) {
-    case 'idle':
-      return 'Standby'
-    case 'depart':
-      return 'Initiating'
-    case 'verifying':
-      return 'Verifying'
-    case 'cleared':
-      return 'Cleared'
-    case 'blocked':
-      return 'Blocked · Escrow'
-    case 'settling':
-      return 'Settling'
-    case 'settled':
-      return 'Settled · Reconciled'
-  }
+// ─── The phase rail (the flow diagram across the top) ──────────────────────
+type PStatus = 'pending' | 'active' | 'done' | 'refused'
+const PHASE_LABELS = ['Trade', 'AI gate', 'Escrow', 'Release', 'Settled']
+
+function PhaseRail({ statuses }: { statuses: PStatus[] }) {
+  const last = PHASE_LABELS.length - 1
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
+      {PHASE_LABELS.map((label, i) => {
+        const s = statuses[i] ?? 'pending'
+        const color =
+          s === 'refused' ? 'var(--blocked)'
+          : s === 'done' ? 'var(--cleared)'
+          : s === 'active' ? 'var(--accent)'
+          : 'var(--text-3)'
+        const filled = s === 'done' || s === 'refused'
+        const passed = filled // outgoing connector lights once this node is resolved
+        return (
+          <div key={label} style={{ display: 'flex', alignItems: 'flex-start', flex: i < last ? 1 : '0 0 auto', minWidth: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, flexShrink: 0, width: 62 }}>
+              <span
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: filled ? '#fff' : color,
+                  background: filled ? color : 'var(--bg-surface)',
+                  border: `1.5px solid ${color}`,
+                  boxShadow: s === 'active' ? '0 0 0 4px rgba(193,18,31,0.12)' : 'none',
+                  animation: s === 'active' ? 'fs-pulse 1.5s ease-in-out infinite' : 'none',
+                  transition: 'background 0.3s ease, color 0.3s ease, border-color 0.3s ease',
+                }}
+              >
+                {s === 'done' ? '✓' : s === 'refused' ? '✕' : i + 1}
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: s === 'pending' ? 'var(--text-3)' : color, textAlign: 'center', whiteSpace: 'nowrap', transition: 'color 0.3s ease' }}>
+                {label}
+              </span>
+            </div>
+            {i < last && (
+              <div style={{ flex: 1, height: 1.5, marginTop: 12.5, minWidth: 14, background: passed ? color : 'var(--border)', transition: 'background 0.4s ease' }} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── The defined end state: payment complete, with the full receipt ─────────
+function PaymentComplete({
+  amount,
+  tx,
+  settleSecs,
+  confirmedBlock,
+}: {
+  amount: string | null
+  tx: TxInfo | null
+  settleSecs: number | null
+  confirmedBlock: number | null
+}) {
+  const txUrl = tx?.explorerUrl || (tx?.hash ? `${EXPLORER}/tx/${tx.hash}` : null)
+  return (
+    <div
+      style={{
+        animation: 'fs-rise 0.5s cubic-bezier(0.2,0.8,0.2,1) both',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 18,
+        padding: '22px 24px',
+        background: 'rgba(21,128,61,0.06)',
+        borderTop: '1px solid var(--cleared)',
+        borderRight: '1px solid var(--cleared)',
+        borderBottom: '1px solid var(--cleared)',
+        borderLeft: '3px solid var(--cleared)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+        <span
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: '50%',
+            background: 'var(--cleared)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 20,
+            fontWeight: 700,
+            flexShrink: 0,
+            animation: 'fs-arrive 0.6s ease-out 0.15s both',
+          }}
+        >
+          ✓
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontFamily: 'var(--font-hero)', fontSize: 22, fontWeight: 700, color: 'var(--cleared)', letterSpacing: '0.01em' }}>Payment complete</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-2)' }}>
+            Settled{settleSecs != null ? ` in ${settleSecs}s` : ''} on the stablecoin rail{amount ? ` · ${amount}` : ''}
+          </span>
+        </div>
+      </div>
+
+      {/* the real value flow, animated through the wallets */}
+      <WalletFlow amount={amount ?? ''} released />
+
+      {/* the receipt */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, borderTop: '1px solid var(--border)' }}>
+        <ChainRow label="Settlement transaction" value={truncHash(tx?.hash ?? '')} title={tx?.hash} href={txUrl} chain={tx?.chain} hint="the permanent, public on-chain record" mono />
+        {confirmedBlock != null && (
+          <ChainRow label="Confirmed block" value={`#${confirmedBlock}`} href={null} hint="mined & final on Sepolia" mono />
+        )}
+        {USDC && (
+          <ChainRow label="Stablecoin (the money)" value={`MockUSDC · ${truncAddr(USDC)}`} title={USDC} href={`${EXPLORER}/address/${USDC}`} hint="digital test-dollars — the asset that moved" mono />
+        )}
+      </div>
+
+      {/* reconciliation — one event, three ledgers */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'rgba(21,128,61,0.09)' }}>
+        <span style={{ color: 'var(--cleared)', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>✓</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-2)', lineHeight: 1.5 }}>
+          Buyer · Supplier · Regulator — reconciled off one settlement event · 0 breaks
+        </span>
+      </div>
+    </div>
+  )
 }
 
 function Styles() {
@@ -1635,6 +1669,10 @@ function Styles() {
       @keyframes fs-fade-in {
         from { opacity: 0; }
         to   { opacity: 1; }
+      }
+      @keyframes fs-rise {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
       }
       .fs-chain-link:hover { color: #a50f1a; }
       .fs-chain-link:hover .fs-chain-link-text { text-decoration: underline; }

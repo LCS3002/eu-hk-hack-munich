@@ -1,12 +1,10 @@
 'use client'
 
 // FaanSail — DemoControls (compact, horizontal — lives in the slim header)
-//   "Clean trade"     → TRD-CLEAN  (AI clears, escrow settles, green)
-//   "Over-invoiced"   → TRD-DIRTY  (AI blocks, escrow refuses, red)
-//   "Reset"           → clears the console
+//   "Clean trade"   → TRD-CLEAN  (AI clears, escrow settles, green)
+//   "Over-invoiced" → TRD-DIRTY  (AI blocks, escrow refuses, red)
+//   "↺"             → resets the console
 // Light theme; references the documented var(--…) tokens (see lib/types.ts).
-// Border sides are set individually (not the `border` shorthand) so toggling the
-// active state never clobbers borderLeft — avoids React's style-rerender warning.
 
 import { CLEAN_TRADE, DIRTY_TRADE } from '@/lib/fixtures'
 
@@ -21,6 +19,7 @@ interface TradeButton {
   label: string
   sub: string
   tone: 'clean' | 'dirty'
+  glyph: string
 }
 
 const BUTTONS: TradeButton[] = [
@@ -29,18 +28,27 @@ const BUTTONS: TradeButton[] = [
     label: 'Clean trade',
     sub: `$${CLEAN_TRADE.amount.toLocaleString('en-US')}`,
     tone: 'clean',
+    glyph: '✓',
   },
   {
     id: DIRTY_TRADE.id, // 'TRD-DIRTY'
     label: 'Over-invoiced',
     sub: `$${DIRTY_TRADE.amount.toLocaleString('en-US')}`,
     tone: 'dirty',
+    glyph: '!',
   },
 ]
 
 export default function DemoControls({ onRun, onReset, activeId }: DemoControlsProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <style>{`
+        .fs-pill { transition: border-color .18s ease, background .18s ease, transform .12s ease, box-shadow .18s ease; }
+        .fs-pill:hover { background: var(--bg-sunken); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .fs-reset { transition: color .18s ease, border-color .18s ease, transform .12s ease; }
+        .fs-reset:hover { color: var(--text-1); border-color: var(--border-strong); transform: rotate(-40deg); }
+      `}</style>
+
       <span
         style={{
           fontFamily: 'var(--font-mono)',
@@ -53,7 +61,7 @@ export default function DemoControls({ onRun, onReset, activeId }: DemoControlsP
           whiteSpace: 'nowrap',
         }}
       >
-        Settle a trade
+        Try a trade
       </span>
 
       {BUTTONS.map((b) => {
@@ -63,28 +71,45 @@ export default function DemoControls({ onRun, onReset, activeId }: DemoControlsP
         return (
           <button
             key={b.id}
+            className="fs-pill"
             onClick={() => onRun(b.id)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 7,
-              padding: '7px 12px',
+              gap: 8,
+              padding: '6px 12px 6px 7px',
               background: isActive ? 'var(--accent-soft)' : 'var(--bg-surface)',
               borderTop: `1px solid ${edge}`,
               borderRight: `1px solid ${edge}`,
               borderBottom: `1px solid ${edge}`,
-              borderLeft: `2px solid ${accent}`,
-              borderRadius: 'var(--panel-radius)',
+              borderLeft: `1px solid ${edge}`,
+              borderRadius: 7,
               cursor: 'pointer',
               fontFamily: 'var(--font-ui)',
-              transition: 'border-color 0.2s ease, background 0.2s ease',
             }}
           >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, flexShrink: 0 }} />
+            <span
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: '50%',
+                background: accent,
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                fontWeight: 700,
+                lineHeight: 1,
+                flexShrink: 0,
+              }}
+            >
+              {b.glyph}
+            </span>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
               {b.label}
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
               {b.sub}
             </span>
           </button>
@@ -92,27 +117,27 @@ export default function DemoControls({ onRun, onReset, activeId }: DemoControlsP
       })}
 
       <button
+        className="fs-reset"
         onClick={onReset}
         aria-label="Reset console"
+        title="Reset"
         style={{
-          padding: '7px 11px',
+          width: 30,
+          height: 30,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           background: 'transparent',
-          borderTop: '1px solid var(--border)',
-          borderRight: '1px solid var(--border)',
-          borderBottom: '1px solid var(--border)',
-          borderLeft: '1px solid var(--border)',
-          borderRadius: 'var(--panel-radius)',
+          border: '1px solid var(--border)',
+          borderRadius: 7,
           cursor: 'pointer',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
           color: 'var(--text-3)',
-          whiteSpace: 'nowrap',
+          fontSize: 15,
+          lineHeight: 1,
+          flexShrink: 0,
         }}
       >
-        Reset
+        ↺
       </button>
     </div>
   )
