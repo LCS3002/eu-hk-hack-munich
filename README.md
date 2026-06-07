@@ -29,6 +29,7 @@ FaanSail is **proof-of-trade-gated settlement** — a new primitive where the co
 - **It verifies the trade, not just the parties** — invoice vs. bill of lading, declared value vs. supplier history, beneficiary-account changes (the over-invoicing / trade-based money laundering that party-screening misses).
 - **It can say *no*.** The over-invoiced trade is **refused before a cent moves** — `release()` is `onlyOracle`-gated by the verdict. Most "AI compliance" tools *flag*; ours *acts*, atomically.
 - **Compliance + payment + audit collapse into one on-chain event** — buyer, supplier and regulator reconcile off the same `Settled` record. Zero breaks.
+- **Verifiable compliance** — the verdict is a *deterministic rules engine*, not a black-box model call; anyone (a regulator included) re-runs it against the on-chain passport and gets the same answer. The LLM only reads the documents and explains.
 
 The escrow itself is commodity Solidity; the novelty is the **fusion** — trade-legitimacy welded to settlement on a regulator-readable ledger — running **for real** on a public testnet, **built for the rail Hong Kong just licensed** (Stablecoins Ordinance · Project Ensemble).
 
@@ -64,7 +65,7 @@ Buyer ledger + supplier ledger + regulator node reconcile off the one event — 
 | Layer | Tech |
 |---|---|
 | Frontend + AI gate | Next.js 15 (App Router), React 19 |
-| Compliance | Claude (`claude-sonnet-4-6`), cross-document consistency, streamed via SSE |
+| Compliance | **Deterministic rules engine** (`lib/compliance.ts`) — 5 cross-document checks → risk score → the verdict of record. Claude is an *assist* (document extraction + explanation), streamed via SSE — it does **not** decide. |
 | Contracts | Solidity — `MockUSDC` + `TradeEscrow` (passport + `deposit`/`approveAndRelease`/`reject`, `onlyOracle`) |
 | Chain | Hardhat → **Sepolia** (and a local node); `ethers` v6 oracle wallet enforces the verdict on-chain |
 
@@ -100,8 +101,8 @@ npm --prefix contracts run deploy:sepolia
 ```
 
 ## What's real vs. simulated
-- **Real:** the escrow and its conditional release/refuse on a public testnet (real txs, Etherscan-verifiable); the live AI cross-document verdict; reconciliation read from on-chain events.
-- **Simulated (clearly labelled):** the fiat on/off ramps, and the settlement asset is mock USDC on testnet. The architecture is identical to a production deployment on a regulated stablecoin rail.
+- **Real:** the **deterministic compliance engine** (auditable rules, the verdict of record — reproducible by anyone, incl. a regulator, from the on-chain passport); the escrow's conditional release/refuse on a public testnet (real txs, **verified** contracts); the **regulator read-back** (trade + verdict + status read live from the contract via `getPassport`); reconciliation off the one on-chain event.
+- **Simulated (clearly labelled):** the settlement asset is mock USDC (stands in for an HKMA-licensed stablecoin), and the trade documents are fixtures — in production the LLM extracts these same fields from the raw PDF/EDI. The compliance, settlement and reconciliation *logic* is real; the architecture is identical to a production deployment.
 
 ## Live on Sepolia
 Every settlement in the demo is a **real transaction on the Sepolia public testnet**, the contract source is **verified on Etherscan**, and the console links each actor straight there.
