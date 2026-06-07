@@ -577,6 +577,10 @@ export default function JourneyConsole({
   const abortRef = useRef<AbortController | null>(null)
   const startedForRef = useRef<string | null>(null)
   const runStartRef = useRef<number | null>(null)
+  // Pacing timers: the SSE arrives in a burst, so we step the rail through its
+  // stages on a fixed schedule (anchored to run start) — otherwise the phases
+  // flash by in <1s and are imperceptible. Cleared on reset / re-run.
+  const paceRef = useRef<number[]>([])
 
   // On-chain finality: once a real Sepolia tx lands, poll its receipt and surface
   // the block it mined in ("Confirmed on-chain · block N"). Best-effort — a failed
@@ -637,6 +641,8 @@ export default function JourneyConsole({
     // Cleared → reset to the calm idle state.
     if (!scenarioId) {
       abortRef.current?.abort()
+      paceRef.current.forEach((t) => clearTimeout(t))
+      paceRef.current = []
       startedForRef.current = null
       runStartRef.current = null
       setPhase('idle')
@@ -656,7 +662,19 @@ export default function JourneyConsole({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scenarioId])
 
+  const clearPace = () => {
+    paceRef.current.forEach((t) => clearTimeout(t))
+    paceRef.current = []
+  }
+  // Fire `fn` no sooner than `ms` after the run started, so each rail stage stays
+  // on screen long enough to read — the SSE itself arrives almost instantly.
+  const scheduleAt = (ms: number, fn: () => void) => {
+    const elapsed = runStartRef.current ? Date.now() - runStartRef.current : 0
+    paceRef.current.push(window.setTimeout(fn, Math.max(0, ms - elapsed)))
+  }
+
   const runVerify = async (id: string) => {
+    clearPace()
     runStartRef.current = Date.now()
     setResult(null)
     setTx(null)
@@ -721,7 +739,9 @@ export default function JourneyConsole({
         break
       case 'verdict':
         setResult(evt.result)
-        setPhase(evt.result.verdict === 'CLEAR' ? 'cleared' : 'blocked')
+        // Paced: hold "verifying" ~1.7s so the Verify stage is readable, then
+        // advance to the Escrow (cleared) / refused (blocked) stage.
+        scheduleAt(1700, () => setPhase(evt.result.verdict === 'CLEAR' ? 'cleared' : 'blocked'))
         break
       case 'tx': {
         setTx({
@@ -731,14 +751,17 @@ export default function JourneyConsole({
           explorerUrl: evt.explorerUrl,
         })
         setOnchainRef(evt.ref ?? null)
-        if (runStartRef.current) {
-          setSettleSecs(Math.max(1, Math.round((Date.now() - runStartRef.current) / 1000)))
-        }
         if (evt.status === 'SETTLED') {
-          setPhase('settling')
-          window.setTimeout(() => setPhase('settled'), 1800)
+          // Step Escrow → Release → Settled on a readable schedule.
+          scheduleAt(3100, () => setPhase('settling'))
+          scheduleAt(4500, () => {
+            setPhase('settled')
+            if (runStartRef.current) {
+              setSettleSecs(Math.max(1, Math.round((Date.now() - runStartRef.current) / 1000)))
+            }
+          })
         } else {
-          setPhase('blocked')
+          scheduleAt(1700, () => setPhase('blocked'))
         }
         break
       }
