@@ -12,6 +12,9 @@
 [![Solidity 0.8](https://img.shields.io/badge/Solidity_0.8-363636?logo=solidity&logoColor=white)](https://soliditylang.org)
 [![Compliance](https://img.shields.io/badge/compliance-deterministic_rules_engine-c1121f)](./src/lib/compliance.ts)
 [![Sepolia](https://img.shields.io/badge/Sepolia-verified_contracts_%E2%9C%93-15803d)](https://sepolia.etherscan.io/address/0x9527bAc8dDf0A3d3B42Af0F0C11F48fe1253540E#code)
+[![Live demo](https://img.shields.io/badge/live_demo-eu--hk--hack--munich.vercel.app-000000?logo=vercel&logoColor=white)](https://eu-hk-hack-munich.vercel.app)
+
+### ▶ Live on Sepolia: **[eu-hk-hack-munich.vercel.app](https://eu-hk-hack-munich.vercel.app)** — run a real trade yourself
 
 <br/>
 
