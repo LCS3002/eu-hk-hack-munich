@@ -110,9 +110,11 @@ async function streamReasoning(
   text: string,
   emit: (event: VerifyEvent) => void
 ): Promise<void> {
-  const CHUNK = 4
+  // Paced like a system doing real work — the compliance reasoning reads at a
+  // believable cadence (~2.5–3s for a full explanation) instead of flashing by.
+  const CHUNK = 3
   for (let i = 0; i < text.length; i += CHUNK) {
-    await new Promise((r) => setTimeout(r, 12))
+    await new Promise((r) => setTimeout(r, 26))
     emit({ type: 'text', text: text.slice(i, i + CHUNK) })
   }
 }

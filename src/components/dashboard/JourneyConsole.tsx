@@ -752,16 +752,21 @@ export default function JourneyConsole({
         })
         setOnchainRef(evt.ref ?? null)
         if (evt.status === 'SETTLED') {
-          // Step Escrow → Release → Settled on a readable schedule.
-          scheduleAt(3100, () => setPhase('settling'))
-          scheduleAt(4500, () => {
+          // The real on-chain settle has now returned (often ~20s in). Pace the
+          // finish from *here* — not from run-start — so Escrow → Release → Settled
+          // each stay on screen and the ending never snaps in. Cancel any pending
+          // timers first so a fast (local) tx can't skip a stage.
+          clearPace()
+          setPhase('cleared')
+          paceRef.current.push(window.setTimeout(() => setPhase('settling'), 1400))
+          paceRef.current.push(window.setTimeout(() => {
             setPhase('settled')
             if (runStartRef.current) {
               setSettleSecs(Math.max(1, Math.round((Date.now() - runStartRef.current) / 1000)))
             }
-          })
+          }, 3200))
         } else {
-          scheduleAt(1700, () => setPhase('blocked'))
+          scheduleAt(1900, () => setPhase('blocked'))
         }
         break
       }
@@ -851,7 +856,7 @@ export default function JourneyConsole({
 
       {/* ════════ Globe — large background that bleeds into the whole whitespace ════════ */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', left: '50%', bottom: '-30%', transform: 'translateX(-50%)', width: 'min(860px, 112%)', aspectRatio: '1 / 1' }}>
+        <div style={{ position: 'absolute', left: '50%', bottom: '-4%', transform: 'translateX(-50%)', width: 'min(600px, 82vw, 70vh)', aspectRatio: '1 / 1' }}>
           <Canvas camera={{ position: [0, 0, 5.4], fov: 42 }} gl={{ alpha: true, antialias: true }} style={{ position: 'absolute', inset: 0 }}>
             <ambientLight intensity={0.7} />
             <VoxelGlobe progress={pulseProgress} blocked={pulseBlocked} active={active} labels={false} />

@@ -118,7 +118,7 @@ const eyebrow: React.CSSProperties = { fontFamily: mono, fontSize: 11, fontWeigh
 function SlideTitle() {
   return (
     <>
-      <div style={{ position: 'absolute', left: '50%', bottom: '-32%', transform: 'translateX(-50%)', width: 'min(820px, 120%)', aspectRatio: '1/1', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', left: '50%', bottom: '-6%', transform: 'translateX(-50%)', width: 'min(560px, 80vw, 64vh)', aspectRatio: '1/1', pointerEvents: 'none' }}>
         <PitchGlobe progress={0.5} />
       </div>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, var(--bg-base) 0%, rgba(250,250,250,0.7) 45%, transparent 80%)' }} />
@@ -140,15 +140,15 @@ function SlideTitle() {
 /* ── Slide 2 — Problem ─────────────────────────────────────────────────── */
 function SlideProblem() {
   const items = [
-    ['Slow', 'Cross-border B2B settles in 3–5 days. ~$1M sits frozen per $10M/month of flow.'],
-    ['Broken', 'Reconciliation is days of manual matching across separate systems — and it breaks.'],
-    ['Blind', 'Compliance screens the parties, never the trade. Over-invoicing & fraud walk straight through.'],
+    ['Slow', 'Settles in 3–5 days. ~$1M frozen per $10M/month.'],
+    ['Broken', 'Days of manual reconciliation — and it breaks.'],
+    ['Blind', 'Compliance screens the parties, never the trade.'],
   ]
   return (
     <div style={{ width: '100%', maxWidth: 900 }}>
       <motion.div {...stagger(0)} style={eyebrow}>The problem</motion.div>
       <motion.h2 {...stagger(1)} style={{ fontFamily: hero, fontSize: 'clamp(26px, 4.4vw, 46px)', fontWeight: 700, lineHeight: 1.15, margin: '14px 0 36px' }}>
-        Trade clears through Hong Kong — and leaks money in three places at once.
+        Trade clears through Hong Kong — and leaks three ways.
       </motion.h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18 }}>
         {items.map(([t, d], n) => (
@@ -180,7 +180,7 @@ function SlideSolution() {
 function SlideHK() {
   return (
     <>
-      <div style={{ position: 'absolute', left: '50%', bottom: '-30%', transform: 'translateX(-50%)', width: 'min(780px, 115%)', aspectRatio: '1/1', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', left: '50%', bottom: '-6%', transform: 'translateX(-50%)', width: 'min(540px, 78vw, 62vh)', aspectRatio: '1/1', pointerEvents: 'none' }}>
         <PitchGlobe progress={1} />
       </div>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, var(--bg-base) 0%, rgba(250,250,250,0.72) 48%, transparent 82%)' }} />
@@ -190,7 +190,7 @@ function SlideHK() {
           Built for the rail Hong Kong just licensed.
         </motion.h2>
         <motion.p {...stagger(2)} style={{ fontSize: 'clamp(14px, 1.8vw, 18px)', color: 'var(--text-2)', lineHeight: 1.6 }}>
-          The Stablecoins Ordinance · Project Ensemble · HSBC and Standard Chartered licences. The Africa–China corridor — the hardest one — closes through Hong Kong. That&apos;s where we settle.
+          Stablecoins Ordinance · Project Ensemble · HSBC &amp; StanChart licences. The Africa–China corridor — the hardest — closes through Hong Kong.
         </motion.p>
       </div>
     </>
@@ -207,9 +207,9 @@ function SlideResult() {
       </motion.h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 34 }}>
         {[
-          ['✓ Good trade', 'settles in seconds · capital freed T+3 → T+0 · reconciled, 0 breaks', 'var(--cleared)'],
-          ['✕ Bad trade', 'refused before a cent moves · funds held in escrow', 'var(--blocked)'],
-          ['On-chain', 'verified contracts on Sepolia · a regulator re-runs the rules', 'var(--text-1)'],
+          ['✓ Good trade', 'settles in seconds · capital freed · 0 breaks', 'var(--cleared)'],
+          ['✕ Bad trade', 'refused before a cent moves · funds held', 'var(--blocked)'],
+          ['On-chain', 'verified on Sepolia · a regulator re-runs the rules', 'var(--text-1)'],
         ].map(([t, d, c], n) => (
           <motion.div key={t as string} {...stagger(2 + n)} style={{ padding: '18px 20px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, textAlign: 'left' }}>
             <div style={{ fontFamily: mono, fontSize: 13, fontWeight: 700, color: c as string, marginBottom: 6 }}>{t}</div>
@@ -234,9 +234,9 @@ function SlideAsk() {
       </motion.h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 34, textAlign: 'left' }}>
         {[
-          ['A design partner', 'one corridor bank or PSP already licensed under the HK Stablecoins Ordinance.'],
-          ['A pilot lane', 'a 6-week live pilot on one Africa–China lane — real stablecoin, our gate enforcing the verdict.'],
-          ['A sandbox seat', 'an intro to the HKMA Project Ensemble / regulatory sandbox to settle on the licensed rail.'],
+          ['A design partner', 'a corridor bank or PSP licensed under the HK Stablecoins Ordinance.'],
+          ['A pilot lane', 'a 6-week pilot on one Africa–China lane — real stablecoin, gate live.'],
+          ['A sandbox seat', 'an intro to HKMA Project Ensemble to settle on the licensed rail.'],
         ].map(([t, d], n) => (
           <motion.div key={t} {...stagger(2 + n)} style={{ display: 'flex', gap: 16, alignItems: 'baseline', padding: '14px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)', borderRadius: 8 }}>
             <span style={{ fontFamily: hero, fontSize: 15, fontWeight: 700, color: 'var(--accent)', flex: '0 0 140px' }}>{t}</span>
