@@ -1,48 +1,72 @@
-# FaanSail — Filming run-of-show
+# FaanSail — Filming run-of-show + scripts
 
-Two 2-minute videos. Full scripts live in [`PITCH.md`](./PITCH.md); this maps each
-beat to **exactly what to click in the current UI** (phase-rail console, globe
-bleeding behind, payment-complete / refused end states, on-chain regulator read-back).
+Two 2-minute videos. Below are **word-for-word scripts** with inline **[stage
+directions]** timed to the current UI, so you can read straight through while you
+drive the demo. (Longer-form positioning + Q&A armour live in [`PITCH.md`](./PITCH.md).)
 
 ## Setup (once, before recording)
 - Run the **production** build (no dev overlays): `npm run build && npm start` → `http://localhost:3000`.
 - **Warm-up settle first:** run one Clean trade and let it finish **before** recording — the first settle after idle re-mints test USDC (~15s); every settle after is fast. Don't record the warm-up.
-- Browser fullscreen (F11), ~110% zoom, bookmarks hidden.
-- Keep a `sepolia.etherscan.io` tab handy, or click the in-app **Etherscan ↗** links live.
-- The settle takes ~18s — never sit in silence; the phase rail + globe fill it.
+- Fullscreen (F11), ~110% zoom, bookmarks hidden. Keep a `sepolia.etherscan.io` tab handy.
+- Pace ≈ 145 words/min. Each script is ~290 words → ~2:00 with the demo pauses. Breathe; let the rail animate.
 
-## What's on screen now
-- **Header** — logo + FAANSAIL + the *Try a trade* pills: **Clean trade $46,000** · **Over-invoiced $74,000** · ↺.
-- **Phase rail** (Grasshopper flow) — Trade → AI gate → Escrow → Release → Settled, lighting up live, each node carrying its real artifact (`risk 2`, `$46,000 locked`, `→ supplier`, `block N`).
-- **Detail card** — payment lane · compliance gate · settlement · reconciliation, over the bleeding **globe**.
-- **End states** — green **PAYMENT COMPLETE** (money flow + liquidity readout + **Regulator view · read from chain**) or red **Refused — funds held**.
+## What's on screen
+Header pills **Clean trade $46,000 · Over-invoiced $74,000**; the **phase rail** (Trade → AI gate → Escrow → Release → Settled) lights up live; the **globe** bleeds behind; end states are green **PAYMENT COMPLETE** (money flow + liquidity + **Regulator view · read from chain**) or red **Refused — funds held**.
 
 ---
 
-## VIDEO 1 — Business (2:00)
-| Time | Click / on screen | Say (PITCH.md › Business) |
-|---|---|---|
-| 0:00–0:15 | Landing hero (globe + wordmark) | **Hook** — trade clears through Hong Kong and leaks in three places; nobody verifies the *trade*. |
-| 0:15–0:40 | Landing | **Problem** — 3–5 days, ~6.3% all-in, ~$1M trapped; reconciliation manual; compliance never sees the trade. |
-| 0:40–1:00 | Click **ENTER CONSOLE** | **What FaanSail is** — the rail that verifies the trade, then settles or *refuses* in seconds. |
-| 1:00–1:15 | Console (rail idle, globe) | **Why Hong Kong** — the regulated stablecoin rail HK just licensed. |
-| 1:15–1:45 | Click **Clean trade** → rail runs Trade→…→Settled → **PAYMENT COMPLETE** | **Demo** — AI clears it, the money flows Buyer→escrow→supplier on a stablecoin rail, settled in ~18s, **liquidity freed T+3→T+0**. |
-| 1:45–2:00 | Click **Over-invoiced** → **Refused, funds held** | **Close** — the bad trade refused before a cent moves; the good one settles and reconciles itself. |
+## SCRIPT 1 — Business pitch (2:00)
 
-## VIDEO 2 — Tech (2:00)
-| Time | Click / on screen | Say (PITCH.md › Technical) |
-|---|---|---|
-| 0:00–0:20 | Console idle | **The spine** — money moves, trade is verified, books are matched: three systems, one event. |
-| 0:20–0:45 | Click **Clean trade**; point at the **AI gate** node + the *Compliance gate* card | **Compliance is a deterministic rules engine** (`lib/compliance.ts`) — 5 cross-document checks → risk → the verdict of record. Claude only reads the docs + explains; it does **not** decide. |
-| 0:45–1:05 | Watch the rail: Escrow `$46k locked` → Release `→ supplier`; the money-flow animation | **On-chain escrow** — `approveAndRelease` / `reject` are `onlyOracle`-gated by the verdict. The refusal is *enforced*, not advisory. |
-| 1:05–1:30 | On **PAYMENT COMPLETE**, click **Etherscan ↗** on the transaction, then the TradeEscrow contract | **Real, verified on Sepolia** — real tx, mined; **verified contract source**; contract tests pass. |
-| 1:30–1:50 | Point at **Regulator view · read from chain** (HS code · value · qty · amount · status) | **Reconciliation** — the regulator reads the *same record* back from the contract. **Verifiable compliance**: anyone re-runs the open rules against this passport and gets the same verdict. |
-| 1:50–2:00 | Console | **Liquidity, honestly** (no FX risk; a partner provides liquidity). Close: real mechanism, live on a public testnet, built for the regulated rail. |
+**[0:00 — Landing page on screen, globe + FAANSAIL]**
+"Trillions in cross-border trade between Africa and China clear through Hong Kong. And every one of those payments leaks money in three places at once.
 
-## The refused beat (show once — your differentiator, ~10s)
-Click **Over-invoiced** → the **AI gate** node turns red (`risk 100`), **Release** shows ✕, the card reads **Refused — funds held in escrow**, and the **Regulator view shows status BLOCKED** (read live from chain). Line: *"Show me another rail that refuses a settlement because the documents don't match."*
+**[0:15]**
+Settlement takes three to five days, at over six percent all-in. For a fintech moving ten million a month, around a million in capital sits frozen — pre-funded, just waiting. Reconciliation is days of manual matching. And compliance only checks the names on the payment — never the trade itself. So over-invoicing and capital flight walk straight through.
+
+**[0:40 — click ENTER CONSOLE]**
+FaanSail fixes all three. It's compliance-native settlement infrastructure: an AI gate verifies the actual trade — the invoice against the bill of lading — and *only then* does the money move, in seconds, on a stablecoin rail.
+
+**[1:00 — console idle, globe]**
+And it runs on the exact rail Hong Kong just licensed — the Stablecoins Ordinance, Project Ensemble. Hong Kong is where this corridor closes.
+
+**[1:15 — click "Clean trade"; let the rail run to PAYMENT COMPLETE]**
+Watch a real one. A clean trade: the gate clears it, the money moves buyer → escrow → supplier, settled in eighteen seconds on a public blockchain — and the capital that used to sit frozen for three days is freed today.
+
+**[1:45 — click "Over-invoiced"; the gate turns red, "Refused"]**
+Now a suspicious one — over-invoiced, beneficiary changed. The gate refuses it. The money never leaves; it's held in escrow.
+
+**[1:55]**
+Everyone else just moves money cheaper. We make settlement *verify the trade, free the capital, and reconcile itself.* That's the rail the corridor's fintechs license. FaanSail."
+
+---
+
+## SCRIPT 2 — Technical pitch (2:00)
+
+**[0:00 — console]**
+"Three things normally happen in three separate systems, at three different times: the money moves, the trade is verified, the books are reconciled. FaanSail collapses them into one event. Here's how.
+
+**[0:20 — click "Clean trade"; point at the AI gate node + the compliance card]**
+First, compliance — and this is *not* a single AI call. It's a deterministic rules engine. Five cross-document checks — quantity, declared value against the supplier's history, HS code, beneficiary account, ship date — computed from the trade data into a risk score and a verdict of record. Claude only reads the documents and writes the explanation. It does not decide.
+
+**[0:45 — rail advances: Escrow "$46k locked" → Release "→ supplier"]**
+That verdict gates the settlement on-chain. A Solidity escrow holds the stablecoin; `approveAndRelease` and `reject` are `onlyOracle` — so the verdict is what moves the money. The refusal is enforced by code, not advisory.
+
+**[1:05 — on PAYMENT COMPLETE, click Etherscan ↗ on the tx, then the TradeEscrow contract]**
+And it's real. Deployed to Sepolia, verified contract source, real mined transactions — here's the settlement, here's the escrow.
+
+**[1:30 — point at "Regulator view · read from chain"]**
+Here's the part that matters: the regulator reads the trade and the verdict *back* from the same contract. One record — buyer, supplier, regulator — zero reconciliation breaks. And because the engine is open and deterministic, anyone re-runs the compliance against this on-chain passport and gets the same answer. Verifiable compliance.
+
+**[1:50]**
+On liquidity we're honest — we take no FX risk; faster settlement just compresses the pre-funding window. The mechanism is real, live on a public testnet, built for the regulated rail Hong Kong just shipped. That's FaanSail."
+
+---
+
+## The refused beat (your differentiator — make it land)
+On **Over-invoiced**, the **AI gate** node turns red (`risk 100`), **Release** shows ✕, the card reads **Refused — funds held in escrow**, and the **Regulator view shows status BLOCKED** (read live from chain). The refusal verdict appears in a few seconds — you don't need to wait for the full on-chain reject to say the line:
+> *"Show me another rail that refuses a settlement because the documents don't match."*
 
 ## Gotchas
-- If a settle ever shows chain `mock` (RPC hiccup), just re-run — it self-heals.
+- If a settle ever shows chain `mock` (RPC hiccup), re-run — it self-heals.
 - The oracle wallet auto-tops-up test USDC, so settles won't fail mid-shoot (the warm-up absorbs the one slow mint).
 - Live addresses + verified-contract links are in [`README.md`](./README.md) › *Live on Sepolia* if you show the repo on camera.
