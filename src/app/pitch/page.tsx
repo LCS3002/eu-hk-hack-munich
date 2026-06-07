@@ -24,6 +24,18 @@ const mono = 'var(--font-mono)'
 const hero = 'var(--font-hero), system-ui, sans-serif'
 const ui = 'var(--font-ui)'
 
+// Frosted backing so text on the globe slides stays legible over the voxel earth.
+const framePanel: React.CSSProperties = {
+  position: 'relative',
+  background: 'rgba(252,252,253,0.82)',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
+  border: '1px solid var(--border)',
+  borderRadius: 18,
+  padding: '40px 52px',
+  boxShadow: '0 12px 44px rgba(0,0,0,0.07)',
+}
+
 export default function PitchDeck() {
   const [i, setI] = useState(0)
   const next = useCallback(() => setI((v) => Math.min(TOTAL - 1, v + 1)), [])
@@ -110,7 +122,7 @@ function SlideTitle() {
         <PitchGlobe progress={0.5} />
       </div>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, var(--bg-base) 0%, rgba(250,250,250,0.7) 45%, transparent 80%)' }} />
-      <div style={{ position: 'relative', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+      <div style={{ ...framePanel, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
         <motion.div {...stagger(0)} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="" style={{ height: 64, width: 'auto' }} />
@@ -172,7 +184,7 @@ function SlideHK() {
         <PitchGlobe progress={1} />
       </div>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, var(--bg-base) 0%, rgba(250,250,250,0.72) 48%, transparent 82%)' }} />
-      <div style={{ position: 'relative', textAlign: 'center', maxWidth: 760, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      <div style={{ ...framePanel, textAlign: 'center', maxWidth: 760, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <motion.div {...stagger(0)} style={eyebrow}>Why Hong Kong</motion.div>
         <motion.h2 {...stagger(1)} style={{ fontFamily: hero, fontSize: 'clamp(26px, 4.4vw, 46px)', fontWeight: 700, lineHeight: 1.15 }}>
           Built for the rail Hong Kong just licensed.
