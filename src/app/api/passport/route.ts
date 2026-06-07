@@ -7,6 +7,10 @@
 import { JsonRpcProvider, Contract, encodeBytes32String, decodeBytes32String } from 'ethers'
 import { TRADE_ESCROW_ABI, USDC_DECIMALS, STATUS_BY_INDEX } from '@/lib/types'
 
+// Node runtime for ethers; force-dynamic so Vercel never caches the read-back.
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 const DEFAULT_RPC_URL = 'http://127.0.0.1:8545'
 const ZERO = '0x0000000000000000000000000000000000000000'
 

@@ -6,6 +6,10 @@
 
 import { JsonRpcProvider } from 'ethers'
 
+// Node runtime for ethers; force-dynamic so Vercel never caches the receipt poll.
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 const DEFAULT_RPC_URL = 'http://127.0.0.1:8545'
 
 export async function GET(req: Request) {

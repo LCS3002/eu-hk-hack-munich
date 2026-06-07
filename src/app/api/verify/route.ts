@@ -13,6 +13,13 @@ import { settleOnChain } from '@/lib/chain'
 import { runCompliance, explainCompliance } from '@/lib/compliance'
 import type { VerifyEvent, ProofOfTradeResult, TradeScenario } from '@/lib/types'
 
+// ethers needs the Node runtime (not edge); force-dynamic so the SSE stream is
+// never cached; allow up to 60s so the two Sepolia txs + confirmations finish
+// inside the request even on a slow block (matters on Vercel — locally it's moot).
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const maxDuration = 60
+
 export async function POST(req: Request) {
   const encoder = new TextEncoder()
 
