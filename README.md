@@ -23,6 +23,12 @@
 
 ---
 
+## What it solves — the whole picture
+
+<p align="center">
+  <img src="docs/overview.svg" alt="FaanSail overview — THE PROBLEM (liquidity trapped at T+3–5, reconciliation breaks, compliance blind to the trade) → FAANSAIL (1 verify with a deterministic rules engine, 2 escrow gates release/refuse onlyOracle, 3 settle on a stablecoin rail into one record) → THE RESULT (good trade settled in seconds, capital freed, reconciled with zero breaks; bad trade refused before a cent moves, funds held; every settlement verifiable on-chain)" width="980" />
+</p>
+
 ## How it works — the stack, end to end
 
 <p align="center">

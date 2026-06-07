@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 440" font-family="ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, monospace">
+  <rect x="0.5" y="0.5" width="1119" height="439" rx="16" fill="#fbfbfb" stroke="#e6e6e9"/>
+  <defs>
+    <marker id="ov" markerWidth="11" markerHeight="11" refX="5" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c1121f"/>
+    </marker>
+  </defs>
+
+  <!-- ════ THE PROBLEM ════ -->
+  <rect x="24" y="60" width="318" height="320" rx="10" fill="#ffffff" stroke="#d9d9de"/>
+  <rect x="24" y="60" width="6" height="320" rx="3" fill="#c1121f"/>
+  <text x="46" y="92" font-size="13" font-weight="700" fill="#c1121f">THE PROBLEM</text>
+  <text x="46" y="118" font-size="10.5" fill="#6b7280">Cross-border B2B trade clears through</text>
+  <text x="46" y="134" font-size="10.5" fill="#6b7280">Hong Kong — and leaks in three places:</text>
+
+  <circle cx="50" cy="178" r="3.5" fill="#c1121f"/>
+  <text x="62" y="182" font-size="11" font-weight="700" fill="#1a1a1a">Liquidity trapped</text>
+  <text x="62" y="199" font-size="9.5" fill="#6b7280">T+3–5 settlement · ~$1M frozen per $10M/mo</text>
+
+  <circle cx="50" cy="240" r="3.5" fill="#c1121f"/>
+  <text x="62" y="244" font-size="11" font-weight="700" fill="#1a1a1a">Reconciliation breaks</text>
+  <text x="62" y="261" font-size="9.5" fill="#6b7280">days of manual matching across systems</text>
+
+  <circle cx="50" cy="302" r="3.5" fill="#c1121f"/>
+  <text x="62" y="306" font-size="11" font-weight="700" fill="#1a1a1a">Compliance is blind to the trade</text>
+  <text x="62" y="323" font-size="9.5" fill="#6b7280">over-invoicing &amp; trade-based laundering pass</text>
+  <text x="62" y="337" font-size="9.5" fill="#6b7280">— banks screen the parties, not the trade</text>
+
+  <!-- arrow → -->
+  <line x1="346" y1="220" x2="380" y2="220" stroke="#c1121f" stroke-width="2" marker-end="url(#ov)"/>
+
+  <!-- ════ FAANSAIL ════ -->
+  <rect x="388" y="40" width="344" height="360" rx="10" fill="#ffffff" stroke="#c1121f" stroke-width="1.75"/>
+  <text x="408" y="74" font-size="16" font-weight="700" fill="#c1121f">FAANSAIL</text>
+  <text x="408" y="92" font-size="10" fill="#6b7280">proof-of-trade-gated settlement</text>
+
+  <rect x="404" y="108" width="312" height="76" rx="8" fill="#fafafa" stroke="#d9d9de"/>
+  <text x="420" y="131" font-size="11" font-weight="700" fill="#1a1a1a">1 · VERIFY — deterministic rules engine</text>
+  <text x="420" y="149" font-size="9.5" fill="#6b7280">invoice vs. bill of lading → verdict of record</text>
+  <text x="420" y="165" font-size="9.5" fill="#6b7280">5 checks · no model decides · reproducible</text>
+
+  <text x="560" y="202" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c1121f">verdict gates settlement ↓</text>
+
+  <rect x="404" y="212" width="312" height="72" rx="8" fill="#fafafa" stroke="#d9d9de"/>
+  <text x="420" y="235" font-size="11" font-weight="700" fill="#1a1a1a">2 · ESCROW — Solidity, onlyOracle</text>
+  <text x="420" y="253" font-size="9.5" fill="#6b7280">holds the funds; releases or refuses —</text>
+  <text x="420" y="269" font-size="9.5" fill="#6b7280">the verdict is what moves the money</text>
+
+  <text x="560" y="304" text-anchor="middle" font-size="12" fill="#9a9a9a">↓</text>
+
+  <rect x="404" y="312" width="312" height="72" rx="8" fill="#fafafa" stroke="#d9d9de"/>
+  <text x="420" y="335" font-size="11" font-weight="700" fill="#1a1a1a">3 · SETTLE — stablecoin rail (Sepolia)</text>
+  <text x="420" y="353" font-size="9.5" fill="#6b7280">instant on-chain settlement → one record</text>
+  <text x="420" y="369" font-size="9.5" fill="#6b7280">buyer · supplier · regulator all read it</text>
+
+  <!-- arrow → -->
+  <line x1="738" y1="220" x2="772" y2="220" stroke="#c1121f" stroke-width="2" marker-end="url(#ov)"/>
+
+  <!-- ════ THE RESULT ════ -->
+  <text x="794" y="92" font-size="13" font-weight="700" fill="#1a1a1a">THE RESULT</text>
+
+  <rect x="794" y="112" width="302" height="96" rx="9" fill="#f0f7f2" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="794" y="112" width="6" height="96" rx="3" fill="#15803d"/>
+  <text x="814" y="138" font-size="12" font-weight="700" fill="#15803d">✓ GOOD TRADE</text>
+  <text x="814" y="158" font-size="9.5" fill="#6b7280">settled in seconds on the rail</text>
+  <text x="814" y="174" font-size="9.5" fill="#6b7280">capital freed — T+3 → T+0</text>
+  <text x="814" y="190" font-size="9.5" fill="#6b7280">reconciled off one event — 0 breaks</text>
+
+  <rect x="794" y="222" width="302" height="80" rx="9" fill="rgba(193,18,31,0.06)" stroke="#c1121f" stroke-width="1.5"/>
+  <rect x="794" y="222" width="6" height="80" rx="3" fill="#c1121f"/>
+  <text x="814" y="248" font-size="12" font-weight="700" fill="#c1121f">✕ BAD TRADE</text>
+  <text x="814" y="268" font-size="9.5" fill="#6b7280">refused before a cent moves</text>
+  <text x="814" y="284" font-size="9.5" fill="#6b7280">funds held in escrow, supplier unpaid</text>
+
+  <text x="794" y="330" font-size="9.5" fill="#6b7280">Every settlement is verifiable on-chain —</text>
+  <text x="794" y="345" font-size="9.5" fill="#6b7280">a regulator re-runs the rules against it.</text>
+</svg>
