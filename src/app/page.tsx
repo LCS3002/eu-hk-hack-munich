@@ -115,6 +115,7 @@ function TechOverview({ onClose }: { onClose: () => void }) {
         style={{
           width: '100%', maxWidth: 1020, background: 'var(--bg-base)', borderRadius: 14,
           border: '1px solid var(--border)', boxShadow: '0 24px 70px rgba(0,0,0,0.30)', padding: '34px 38px 40px',
+          maxHeight: '90vh', overflowY: 'auto', overscrollBehavior: 'contain',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 4 }}>

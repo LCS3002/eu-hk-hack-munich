@@ -1231,8 +1231,9 @@ function SettlementBlock({
     )
   }
 
-  // SETTLED → the real, clickable on-chain money flow.
-  const txUrl = tx.explorerUrl || (tx.hash ? `${EXPLORER}/tx/${tx.hash}` : null)
+  // SETTLED → the real, clickable on-chain money flow. Only link when the server
+  // gave a real explorer URL (sepolia) — never fabricate one from a mock/local hash.
+  const txUrl = tx.explorerUrl
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Settled-in headline */}
@@ -1692,7 +1693,7 @@ function PaymentComplete({
   confirmedBlock: number | null
   passport: OnchainPassport | null
 }) {
-  const txUrl = tx?.explorerUrl || (tx?.hash ? `${EXPLORER}/tx/${tx.hash}` : null)
+  const txUrl = tx?.explorerUrl ?? null
   // Liquidity: faster settlement collapses the ~3-day pre-funding window.
   const carrySaved = amountNum != null ? Math.round(amountNum * (0.063 / 365) * 3) : null
   return (
