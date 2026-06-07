@@ -23,45 +23,15 @@
 
 ## How it works — the stack, end to end
 
-```text
- ┌──────────────────────────────────────────────────────────────┐
- │  Console — Next.js 15 · React 19 · R3F globe · SSE stream     │
- └───────────────┬──────────────────────────────────────────────┘
-                 │  POST /api/verify  { invoice, billOfLading, history }
-                 ▼
- ┌──────────────────────────────────────────────────────────────┐
- │  PROOF-OF-TRADE GATE          (/api/verify, streamed)         │
- │   • lib/compliance.ts — DETERMINISTIC rules engine           │
- │       5 cross-doc checks → risk score → VERDICT of record    │
- │   • Claude (sonnet-4-6) — reads docs + explains (assist only)│
- └───────────────┬──────────────────────────────────────────────┘
-                 │  verdict gates settlement (enforced on-chain)
-                 ▼
- ┌──────────────────────────────────────────────────────────────┐
- │  CHAIN BRIDGE — lib/chain.ts  (ethers v6, oracle wallet)      │
- │     deposit() ── lock funds + trade passport                 │
- │     CLEAR → approveAndRelease()   BLOCK → reject()  onlyOracle│
- └───────────────┬──────────────────────────────────────────────┘
-                 ▼
- ┌──────────────────────────────────────────────────────────────┐
- │  SEPOLIA — verified contracts                                 │
- │     TradeEscrow  passport: ref · HS · value · qty · parties · status
- │     MockUSDC     the stablecoin that actually moves          │
- │     events:      Locked · Settled · Blocked                  │
- └───────────────┬──────────────────────────────────────────────┘
-                 ▼   read back live via getPassport()
-      Buyer · Supplier · Regulator  →  one record, zero breaks
-```
+<p align="center">
+  <img src="docs/architecture.svg" alt="FaanSail architecture — console → proof-of-trade gate (deterministic rules engine + Claude assist) → chain bridge → Sepolia verified contracts → reconciliation read back live" width="650" />
+</p>
 
 **The money flow, on real Sepolia wallets:**
 
-```text
-  Buyer 0xd2c3…8cb0 ──deposit $46,000──▶ TradeEscrow 0x9527…540E
-                                              │  approveAndRelease()  (AI-cleared)
-                                              ▼
-                                         Supplier 0x7099…79C8  ✓ paid · block N
-        (on BLOCK: reject() — funds held in escrow, supplier unpaid)
-```
+<p align="center">
+  <img src="docs/moneyflow.svg" alt="Money flow — the buyer deposits into the TradeEscrow contract, which releases to the supplier on an AI-cleared verdict; on a block, funds are held in escrow" width="720" />
+</p>
 
 ---
 

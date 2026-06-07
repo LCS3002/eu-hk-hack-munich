@@ -13,10 +13,10 @@ Judges compare this against `git shortlog -sn`, so keep it honest.
 |---|---|---|
 | Lorenz Huber | `LCS3002` | Settlement console + 3D globe / Grasshopper money-flow UI, **deterministic compliance engine**, chain bridge (`ethers`), proof-of-trade API route, design system, docs (23 commits) |
 | Yi-Chen Hsu | `gunjyo0817` (commits as `yichen`) | Backend integration: OpenAPI 3.0 spec, `/api/health`, Hardhat deploy + `chain:*` scripts, dashboard panels, border-shorthand fixes (5 commits) |
-| Miloš Preradović | `prmilos` | _Business case / pitch / market sizing — **fill in** (no commits to this repo)_ |
-| John Yu | _add handle_ | _**fill in** (no commits to this repo)_ |
+| Miloš Preradović | `prmilos` | Concept, business case, design, system architecture & real-world rollout design (no commits to this repo) |
+| John Yu | — | Concept, business case, design, system architecture & real-world rollout design (no commits to this repo) |
 
-> `git shortlog -sn` shows code commits from **LCS3002** and **yichen** only. Miloš and John contributed off-repo (pitch / business / design) — please replace the italic notes with their actual work before submitting.
+> `git shortlog -sn` shows code commits from **LCS3002** and **yichen** only. Miloš and John drove the concept, business case, design, and the real-world system design (off-repo).
 
 ---
 
