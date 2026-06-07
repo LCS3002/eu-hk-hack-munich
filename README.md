@@ -21,6 +21,50 @@
 
 ---
 
+## How it works — the stack, end to end
+
+```text
+ ┌──────────────────────────────────────────────────────────────┐
+ │  Console — Next.js 15 · React 19 · R3F globe · SSE stream     │
+ └───────────────┬──────────────────────────────────────────────┘
+                 │  POST /api/verify  { invoice, billOfLading, history }
+                 ▼
+ ┌──────────────────────────────────────────────────────────────┐
+ │  PROOF-OF-TRADE GATE          (/api/verify, streamed)         │
+ │   • lib/compliance.ts — DETERMINISTIC rules engine           │
+ │       5 cross-doc checks → risk score → VERDICT of record    │
+ │   • Claude (sonnet-4-6) — reads docs + explains (assist only)│
+ └───────────────┬──────────────────────────────────────────────┘
+                 │  verdict gates settlement (enforced on-chain)
+                 ▼
+ ┌──────────────────────────────────────────────────────────────┐
+ │  CHAIN BRIDGE — lib/chain.ts  (ethers v6, oracle wallet)      │
+ │     deposit() ── lock funds + trade passport                 │
+ │     CLEAR → approveAndRelease()   BLOCK → reject()  onlyOracle│
+ └───────────────┬──────────────────────────────────────────────┘
+                 ▼
+ ┌──────────────────────────────────────────────────────────────┐
+ │  SEPOLIA — verified contracts                                 │
+ │     TradeEscrow  passport: ref · HS · value · qty · parties · status
+ │     MockUSDC     the stablecoin that actually moves          │
+ │     events:      Locked · Settled · Blocked                  │
+ └───────────────┬──────────────────────────────────────────────┘
+                 ▼   read back live via getPassport()
+      Buyer · Supplier · Regulator  →  one record, zero breaks
+```
+
+**The money flow, on real Sepolia wallets:**
+
+```text
+  Buyer 0xd2c3…8cb0 ──deposit $46,000──▶ TradeEscrow 0x9527…540E
+                                              │  approveAndRelease()  (AI-cleared)
+                                              ▼
+                                         Supplier 0x7099…79C8  ✓ paid · block N
+        (on BLOCK: reject() — funds held in escrow, supplier unpaid)
+```
+
+---
+
 ## Why it's novel
 Payment rails move money and screen the **parties**. They never see the **trade**.
 
@@ -38,23 +82,6 @@ Cross-border B2B settlement on the Africa↔China corridor is still **3–5 days
 - **Liquidity** trapped in pre-funding (~$1M per $10M/month of flow at T+3).
 - **Reconciliation** that takes days of manual matching across separate systems.
 - **Compliance** that can't see the actual trade — so over-invoicing / trade-based money laundering / capital flight walks straight through.
-
-## How it works
-```
-Fintech's importer initiates payment against an invoice
-      │
-      ▼
-AI proof-of-trade gate  ── Claude reads invoice + bill of lading, scores risk, returns a verdict
-      │
-      ▼
-Trade passport (tokenized) locked in an on-chain Escrow      status: VERIFYING
-      │
-      ├─ CLEAR  →  approveAndRelease()  →  stablecoin to supplier   →  SETTLED
-      └─ BLOCK  →  reject(reason)       →  funds held               →  BLOCKED
-      │
-      ▼
-Buyer ledger + supplier ledger + regulator node reconcile off the one event — zero breaks
-```
 
 ## The three wins
 - **Compliance** — the AI verdict gates the on-chain release. The refusal is *enforced* (`onlyOracle`), not advisory.
