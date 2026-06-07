@@ -4,7 +4,27 @@ import { useState, useRef, useMemo, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
+import { motion } from 'framer-motion'
 import GlobeBackground from '@/components/hero/GlobeBackground'
+
+// ── Team (mirrors /team) — rendered as an animated scroll section on the landing.
+const TEAM = [
+  { name: 'Yi-Chen Hsu',      role: 'Engineering',                  study: 'Computer Science · NTHU → TUM',       github: 'https://github.com/gunjyo0817', linkedin: 'https://www.linkedin.com/in/yichenhsu/' },
+  { name: 'Lorenz Huber',     role: 'Engineering · Design',         study: 'Architecture · UCL London',           github: 'https://github.com/LCS3002',    linkedin: 'https://www.linkedin.com/in/huberlorenz' },
+  { name: 'Miloš Preradović', role: 'Concept · Business · Rollout', study: 'Economics & Engineering · TU Vienna', github: 'https://github.com/prmilos',    linkedin: 'https://www.linkedin.com/in/milo%C5%A1-preradovi%C4%87-9a0329387/' },
+  { name: 'John Yu',          role: 'Concept · Business · Design',  study: 'London · from Korea',                 github: '',                              linkedin: 'https://www.linkedin.com/in/john-yu-759490383/' },
+] as const
+
+const GH_ICON = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+  </svg>
+)
+const LI_ICON = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+  </svg>
+)
 
 /* FaanSail — institutional payment-infrastructure landing hero.
    Light white/grey, near-black text, HSBC-red accent used sparingly.
@@ -467,6 +487,9 @@ export default function FaanSailHero({ onEnter }: { onEnter: () => void }) {
             <button type="button" className="fs-cta" onClick={handleEnter}>
               ENTER CONSOLE
             </button>
+            <a href="/pitch" className="fs-cta-secondary">
+              BUSINESS PITCH
+            </a>
             <a
               href={REPO_URL}
               target="_blank"
@@ -475,11 +498,72 @@ export default function FaanSailHero({ onEnter }: { onEnter: () => void }) {
             >
               VIEW REPO
             </a>
-            <a href="/team" className="fs-cta-secondary">
-              TEAM
-            </a>
           </div>
+
+          <a href="#team" className="fs-scrollcue" aria-label="Meet the team">
+            <span>MEET THE TEAM</span>
+            <span className="fs-scrollcue-arrow" aria-hidden="true">↓</span>
+          </a>
         </div>
+      </section>
+
+      {/* ── Team — animated scroll section (the globe stays fixed behind) ── */}
+      <section id="team" className="fs-team">
+        <motion.div
+          className="fs-team-head"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}
+        >
+          <div className="fs-team-eyebrow">
+            <span className="fs-eyebrow-rule" />
+            BUILT AT THE EU × HONG KONG FINTECH HACKATHON
+          </div>
+          <h2 className="fs-team-title">The team behind FaanSail</h2>
+          <p className="fs-team-sub">
+            Four builders across engineering, design and business — we shipped the
+            whole settlement system live on Sepolia during the hackathon.
+          </p>
+        </motion.div>
+
+        <div className="fs-team-grid">
+          {TEAM.map((p, i) => (
+            <motion.div
+              key={p.name}
+              className="fs-team-card"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.5, delay: i * 0.1, ease: [0.2, 0.8, 0.2, 1] }}
+            >
+              <div className="fs-team-role">{p.role}</div>
+              <div className="fs-team-name">{p.name}</div>
+              <div className="fs-team-study">{p.study}</div>
+              <div className="fs-team-links">
+                <a href={p.linkedin} target="_blank" rel="noopener noreferrer" className="fs-team-link">
+                  {LI_ICON} LinkedIn
+                </a>
+                {p.github && (
+                  <a href={p.github} target="_blank" rel="noopener noreferrer" className="fs-team-link">
+                    {GH_ICON} GitHub
+                  </a>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div
+          className="fs-team-foot"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <a href="/pitch" className="fs-cta-secondary">BUSINESS PITCH</a>
+          <button type="button" className="fs-cta" onClick={handleEnter}>ENTER CONSOLE</button>
+        </motion.div>
       </section>
 
       <style>{`
@@ -661,8 +745,143 @@ export default function FaanSailHero({ onEnter }: { onEnter: () => void }) {
           outline-offset: 3px;
         }
 
+        /* ── Scroll cue ── */
+        .fs-scrollcue {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          margin: 40px 0 0;
+          font-family: var(--font-mono, 'JetBrains Mono', monospace);
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          color: var(--text-3, #9a9a9a);
+          text-decoration: none;
+          transition: color 0.2s ease;
+        }
+        .fs-scrollcue:hover { color: var(--accent, #c1121f); }
+        .fs-scrollcue-arrow {
+          display: inline-block;
+          animation: fs-bob 1.8s ease-in-out infinite;
+        }
+        @keyframes fs-bob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(4px); }
+        }
+
+        /* ── Team scroll section ── */
+        .fs-team {
+          position: relative;
+          z-index: 1;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          padding: 110px 80px;
+          box-sizing: border-box;
+          background: linear-gradient(to bottom, transparent, rgba(250,250,250,0.78) 18%, rgba(250,250,250,0.92) 100%);
+        }
+        .fs-team-head {
+          width: 100%;
+          max-width: 980px;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 52px;
+        }
+        .fs-team-eyebrow {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          font-family: var(--font-mono, 'JetBrains Mono', monospace);
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.28em;
+          text-transform: uppercase;
+          color: var(--accent, #c1121f);
+          margin-bottom: 22px;
+        }
+        .fs-team-title {
+          font-family: var(--font-hero, 'Space Grotesk', system-ui, sans-serif);
+          font-size: clamp(30px, 4.4vw, 52px);
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          line-height: 1.08;
+          color: var(--text-1, #1a1a1a);
+          margin: 0;
+        }
+        .fs-team-sub {
+          font-size: 15px;
+          line-height: 1.7;
+          color: var(--text-2, #595959);
+          max-width: 560px;
+          margin: 18px 0 0;
+        }
+        .fs-team-grid {
+          width: 100%;
+          max-width: 980px;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+          gap: 16px;
+        }
+        .fs-team-card {
+          background: var(--bg-surface, #fff);
+          border: 1px solid var(--border, rgba(0,0,0,0.08));
+          border-top: 3px solid var(--accent, #c1121f);
+          border-radius: 10px;
+          padding: 26px 24px 22px;
+          box-shadow: 0 8px 26px rgba(0,0,0,0.05);
+        }
+        .fs-team-role {
+          font-family: var(--font-mono, 'JetBrains Mono', monospace);
+          font-size: 9.5px;
+          font-weight: 700;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: var(--accent, #c1121f);
+          margin-bottom: 14px;
+        }
+        .fs-team-name {
+          font-size: 19px;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+          color: var(--text-1, #1a1a1a);
+          margin-bottom: 6px;
+        }
+        .fs-team-study {
+          font-size: 12px;
+          line-height: 1.6;
+          color: var(--text-2, #595959);
+          margin-bottom: 22px;
+        }
+        .fs-team-links { display: flex; gap: 16px; }
+        .fs-team-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-family: var(--font-mono, 'JetBrains Mono', monospace);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          color: var(--text-3, #9a9a9a);
+          text-decoration: none;
+          transition: color 0.2s ease;
+        }
+        .fs-team-link:hover { color: var(--accent, #c1121f); }
+        .fs-team-foot {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 16px;
+          margin-top: 52px;
+        }
+
         /* ── Responsive ── */
         @media (max-width: 768px) {
+          .fs-team { padding: 80px 22px; }
           .fs-hero { padding: 88px 22px; align-items: flex-start; }
           .fs-content {
             background: rgba(250, 250, 250, 0.82);

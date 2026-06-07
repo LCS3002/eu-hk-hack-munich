@@ -441,7 +441,7 @@ function Corridor({
 }
 
 // ── Voxel globe (the "earth") — light-themed, gently auto-rotating ─────────
-function VoxelGlobe({
+export function VoxelGlobe({
   progress,
   blocked,
   active,
