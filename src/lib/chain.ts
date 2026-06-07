@@ -21,6 +21,7 @@ import {
   type Verdict,
   type ChainMode,
 } from './types'
+import { runCompliance } from './compliance'
 
 // Hardhat account #1 — the demo supplier / beneficiary of a released payment.
 // (Account #0 is the buyer+oracle wallet, supplied via ORACLE_PRIVATE_KEY.)
@@ -156,10 +157,13 @@ async function settleOnce(
       { nonce: nonce++, gasLimit: 300000 }
     )
 
+    // The on-chain risk score + block reason come from the SAME deterministic
+    // engine the verdict did — bound into the settlement, reproducible from chain.
+    const compliance = runCompliance(scenario)
     const settleTx =
       verdict === 'CLEAR'
-        ? await escrow.approveAndRelease(invoiceRef, scenario.fixtureResult.riskScore, { nonce: nonce++, gasLimit: 200000 })
-        : await escrow.reject(invoiceRef, scenario.fixtureResult.flags[0] ?? 'compliance block', { nonce: nonce++, gasLimit: 200000 })
+        ? await escrow.approveAndRelease(invoiceRef, compliance.riskScore, { nonce: nonce++, gasLimit: 200000 })
+        : await escrow.reject(invoiceRef, compliance.flags[0] ?? 'compliance block', { nonce: nonce++, gasLimit: 200000 })
 
     const hash: string = settleTx.hash
     const status: 'SETTLED' | 'BLOCKED' = verdict === 'CLEAR' ? 'SETTLED' : 'BLOCKED'

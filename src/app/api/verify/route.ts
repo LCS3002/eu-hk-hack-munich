@@ -10,6 +10,7 @@
 
 import { SCENARIOS, CLEAN_TRADE } from '@/lib/fixtures'
 import { settleOnChain } from '@/lib/chain'
+import { runCompliance } from '@/lib/compliance'
 import type {
   VerifyEvent,
   ProofOfTradeResult,
@@ -111,29 +112,31 @@ export async function POST(req: Request) {
         }
       }
 
-      let result: ProofOfTradeResult = scenario.fixtureResult
+      // The verdict OF RECORD is deterministic — computed from the trade data by
+      // the compliance rules engine (lib/compliance), NOT by the model. The model
+      // is only an assist that narrates; in production it also extracts these
+      // fields from the raw documents. Compliance is rules, not a Claude call.
+      const result: ProofOfTradeResult = runCompliance(scenario)
 
-      // ── Stage 1: reasoning + verdict ────────────────────────────────────
+      // ── Stage 1: stream the human explanation (model assist, or fixture text) ──
       try {
         // HARBOUR_-prefixed first so a stale system ANTHROPIC_API_KEY (which
         // dotenv/Next will NOT override) can't shadow our .env value.
         const apiKey = process.env.HARBOUR_ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY
         if (apiKey) {
-          result = await streamWithAnthropic(apiKey, scenario, emit)
+          await streamWithAnthropic(apiKey, scenario, emit)
         } else {
           await streamFixtureReasoning(scenario.fixtureReasoning, emit)
-          result = scenario.fixtureResult
         }
       } catch (err) {
-        // Reasoning stage failed — log why, then still stream the fixture
-        // reasoning so the demo never shows an empty panel.
-        console.error('[verify] live reasoning failed, using fixture:', err)
+        // Explanation stage failed — still stream the fixture narrative so the
+        // panel is never empty. The verdict is unaffected (it's deterministic).
+        console.error('[verify] explanation stream failed, using fixture text:', err)
         try {
           await streamFixtureReasoning(scenario.fixtureReasoning, emit)
         } catch {
           /* ignore */
         }
-        result = scenario.fixtureResult
       }
 
       // ── Stage 2: emit structured verdict ────────────────────────────────
