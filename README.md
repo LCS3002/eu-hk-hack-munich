@@ -15,7 +15,9 @@
 
 <br/>
 
-<img src="docs/console.png" alt="FaanSail settlement console — the Grasshopper-style money flow over the corridor globe" width="840" />
+<img src="docs/demo.gif" alt="FaanSail — a trade verified by the deterministic compliance gate, settled on-chain in seconds, and reconciled, live on Sepolia" width="840" />
+
+<em>A trade cleared by the deterministic gate → settled on-chain → reconciled — live on Sepolia.</em>
 
 </div>
 
