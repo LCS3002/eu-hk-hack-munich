@@ -907,6 +907,8 @@ export default function JourneyConsole({
                   />
                 </Section>
 
+                {blocked && <RegulatorReadback passport={passport} />}
+
                 <ReconLine settled={settled} blocked={blocked} />
               </div>
             )}
@@ -1736,25 +1738,7 @@ function PaymentComplete({
       </div>
 
       {/* Regulator read-back — the passport the contract actually holds, read live */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '12px 14px', background: 'rgba(0,0,0,0.02)', borderLeft: '3px solid var(--text-1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-2)' }}>Regulator view · read from chain</span>
-          {passport && <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: 'var(--cleared)' }}>● {passport.status}</span>}
-        </div>
-        {passport ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 18px' }}>
-            <ReadRow k="HS code" v={passport.hsCode || '—'} />
-            <ReadRow k="Declared value" v={`$${passport.declaredValue.toLocaleString('en-US')}`} />
-            <ReadRow k="Quantity" v={passport.quantity.toLocaleString('en-US')} />
-            <ReadRow k="Amount" v={`${passport.amount.toLocaleString('en-US')} USDC`} />
-          </div>
-        ) : (
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--text-3)' }}>Reading the passport back from the contract…</span>
-        )}
-        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10.5, color: 'var(--text-3)', lineHeight: 1.5 }}>
-          The exact record the buyer, supplier and a regulator all read — one ledger, nothing to reconcile.
-        </span>
-      </div>
+      <RegulatorReadback passport={passport} />
 
       {/* reconciliation — one event, three ledgers */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'rgba(21,128,61,0.09)' }}>
@@ -1772,6 +1756,39 @@ function ReadRow({ k, v }: { k: string; v: string }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid var(--border)', paddingBottom: 3 }}>
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-3)' }}>{k}</span>
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--text-1)' }}>{v}</span>
+    </div>
+  )
+}
+
+// The trade passport, read straight back from the contract — the same record the
+// buyer, supplier and a regulator all see. Used on BOTH the settled (status
+// SETTLED) and refused (status BLOCKED) paths so the refusal is just as provable.
+function RegulatorReadback({ passport }: { passport: OnchainPassport | null }) {
+  const statusColor =
+    passport?.status === 'SETTLED'
+      ? 'var(--cleared)'
+      : passport?.status === 'BLOCKED'
+        ? 'var(--blocked)'
+        : 'var(--text-3)'
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '12px 14px', background: 'rgba(0,0,0,0.02)', borderLeft: '3px solid var(--text-1)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-2)' }}>Regulator view · read from chain</span>
+        {passport && <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: statusColor }}>● {passport.status}</span>}
+      </div>
+      {passport ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 18px' }}>
+          <ReadRow k="HS code" v={passport.hsCode || '—'} />
+          <ReadRow k="Declared value" v={`$${passport.declaredValue.toLocaleString('en-US')}`} />
+          <ReadRow k="Quantity" v={passport.quantity.toLocaleString('en-US')} />
+          <ReadRow k="Amount" v={`${passport.amount.toLocaleString('en-US')} USDC`} />
+        </div>
+      ) : (
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--text-3)' }}>Reading the passport back from the contract…</span>
+      )}
+      <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10.5, color: 'var(--text-3)', lineHeight: 1.5 }}>
+        The exact record the buyer, supplier and a regulator all read — one ledger, nothing to reconcile.
+      </span>
     </div>
   )
 }

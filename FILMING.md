@@ -1,49 +1,48 @@
 # FaanSail — Filming run-of-show
 
 Two 2-minute videos. Full scripts live in [`PITCH.md`](./PITCH.md); this maps each
-script beat to **exactly what to click** so you can shoot fast.
+beat to **exactly what to click in the current UI** (phase-rail console, globe
+bleeding behind, payment-complete / refused end states, on-chain regulator read-back).
 
 ## Setup (once, before recording)
-- Run the **production** build, not dev (no dev overlays, snappier):
-  ```bash
-  npm run build && npm start      # http://localhost:3000
-  ```
-- Browser **fullscreen** (F11), hide the bookmarks bar, zoom ~100–110%.
-- Open **two tabs**: (1) the app, (2) `https://sepolia.etherscan.io` ready to paste.
-- The settle takes **~18s** — never wait in silence; narrate over it (cues below).
-- The money-flow animation plays **when the settled state appears** — so before you
-  click, scroll the right panel so the **Settlement · stablecoin rail** block is in view.
-- Do 2–3 takes of each. Record clean-trade for the main flow; dirty-trade for the refuse beat.
+- Run the **production** build (no dev overlays): `npm run build && npm start` → `http://localhost:3000`.
+- **Warm-up settle first:** run one Clean trade and let it finish **before** recording — the first settle after idle re-mints test USDC (~15s); every settle after is fast. Don't record the warm-up.
+- Browser fullscreen (F11), ~110% zoom, bookmarks hidden.
+- Keep a `sepolia.etherscan.io` tab handy, or click the in-app **Etherscan ↗** links live.
+- The settle takes ~18s — never sit in silence; the phase rail + globe fill it.
+
+## What's on screen now
+- **Header** — logo + FAANSAIL + the *Try a trade* pills: **Clean trade $46,000** · **Over-invoiced $74,000** · ↺.
+- **Phase rail** (Grasshopper flow) — Trade → AI gate → Escrow → Release → Settled, lighting up live, each node carrying its real artifact (`risk 2`, `$46,000 locked`, `→ supplier`, `block N`).
+- **Detail card** — payment lane · compliance gate · settlement · reconciliation, over the bleeding **globe**.
+- **End states** — green **PAYMENT COMPLETE** (money flow + liquidity readout + **Regulator view · read from chain**) or red **Refused — funds held**.
 
 ---
 
 ## VIDEO 1 — Business (2:00)
-Mostly you on camera or voiceover; cut to the screen for the demo at 1:30.
-
-| Time | On screen | Say (see PITCH.md › Business) |
+| Time | Click / on screen | Say (PITCH.md › Business) |
 |---|---|---|
-| 0:00–0:15 | Landing hero (globe) | **Hook** — trade clears through Hong Kong and leaks money in three places: liquidity, reconciliation, and nobody verifies the trade. |
-| 0:15–0:40 | Landing hero | **Problem** — 3–5 days, ~6.3% all-in, ~$1M trapped per $10M/mo; reconciliation is manual; compliance never sees the trade. |
-| 0:40–1:05 | Click **ENTER CONSOLE** | **What FaanSail is** — the payment infrastructure fintechs run on: verify the trade, then settle in seconds, refuse the bad one before a cent moves. |
-| 1:05–1:20 | Console idle | **Why Hong Kong** — runs on the rail HK just licensed (Stablecoins Ordinance, Project Ensemble). The corridor closes here. |
-| 1:20–1:50 | Click **Clean trade** → narrate the AI gate as it streams → the **money flows** Buyer→Escrow→Supplier → **Settled in ~18s** | **Demo** — watch it clear: AI verifies invoice vs. bill of lading, funds release on the stablecoin rail, supplier paid — live on a public testnet. |
-| 1:50–2:00 | Click **Over-invoiced** → **BLOCKED**, funds held | **Close** — the bad trade is refused, funds held. We make settlement verify the trade, free the capital, and reconcile itself. |
+| 0:00–0:15 | Landing hero (globe + wordmark) | **Hook** — trade clears through Hong Kong and leaks in three places; nobody verifies the *trade*. |
+| 0:15–0:40 | Landing | **Problem** — 3–5 days, ~6.3% all-in, ~$1M trapped; reconciliation manual; compliance never sees the trade. |
+| 0:40–1:00 | Click **ENTER CONSOLE** | **What FaanSail is** — the rail that verifies the trade, then settles or *refuses* in seconds. |
+| 1:00–1:15 | Console (rail idle, globe) | **Why Hong Kong** — the regulated stablecoin rail HK just licensed. |
+| 1:15–1:45 | Click **Clean trade** → rail runs Trade→…→Settled → **PAYMENT COMPLETE** | **Demo** — AI clears it, the money flows Buyer→escrow→supplier on a stablecoin rail, settled in ~18s, **liquidity freed T+3→T+0**. |
+| 1:45–2:00 | Click **Over-invoiced** → **Refused, funds held** | **Close** — the bad trade refused before a cent moves; the good one settles and reconciles itself. |
 
 ## VIDEO 2 — Tech (2:00)
-Screen-record the whole time.
-
-| Time | On screen | Say (see PITCH.md › Technical) |
+| Time | Click / on screen | Say (PITCH.md › Technical) |
 |---|---|---|
-| 0:00–0:20 | Console idle | **The spine** — money moves, trade is verified, books are matched: three systems, three times. We collapse them into one event. |
-| 0:20–0:45 | Click **Clean trade**; point at the **AI Compliance Gate** streaming | **AI proof-of-trade gate** — a Next.js route streams Claude doing cross-document consistency (qty, value vs. history, beneficiary, ship date) → a structured verdict. |
-| 0:45–1:10 | The **Settlement · stablecoin rail** block animates | **On-chain escrow** — a Solidity `TradeEscrow` holds the stablecoin; `approveAndRelease`/`reject` are `onlyOracle` — **the AI verdict gates the on-chain settlement**. |
-| 1:10–1:35 | Click the **Etherscan ↗** on the transaction (and on TradeEscrow) | **Real, not staged** — deployed to Sepolia: real tx, mined, status success; the live contract; tests pass (SETTLE releases, BLOCK holds). |
-| 1:35–1:50 | Back to console; the reconciliation line | **Reconciliation** — buyer, supplier, regulator read the same `Settled` event. One source of truth, zero breaks. |
-| 1:50–2:00 | Console | **Liquidity, honestly** — instant compliance-cleared settlement compresses pre-funding; we take no FX risk. Close: real mechanism, live on a public testnet, built for the regulated rail. |
+| 0:00–0:20 | Console idle | **The spine** — money moves, trade is verified, books are matched: three systems, one event. |
+| 0:20–0:45 | Click **Clean trade**; point at the **AI gate** node + the *Compliance gate* card | **Compliance is a deterministic rules engine** (`lib/compliance.ts`) — 5 cross-document checks → risk → the verdict of record. Claude only reads the docs + explains; it does **not** decide. |
+| 0:45–1:05 | Watch the rail: Escrow `$46k locked` → Release `→ supplier`; the money-flow animation | **On-chain escrow** — `approveAndRelease` / `reject` are `onlyOracle`-gated by the verdict. The refusal is *enforced*, not advisory. |
+| 1:05–1:30 | On **PAYMENT COMPLETE**, click **Etherscan ↗** on the transaction, then the TradeEscrow contract | **Real, verified on Sepolia** — real tx, mined; **verified contract source**; contract tests pass. |
+| 1:30–1:50 | Point at **Regulator view · read from chain** (HS code · value · qty · amount · status) | **Reconciliation** — the regulator reads the *same record* back from the contract. **Verifiable compliance**: anyone re-runs the open rules against this passport and gets the same verdict. |
+| 1:50–2:00 | Console | **Liquidity, honestly** (no FX risk; a partner provides liquidity). Close: real mechanism, live on a public testnet, built for the regulated rail. |
 
----
+## The refused beat (show once — your differentiator, ~10s)
+Click **Over-invoiced** → the **AI gate** node turns red (`risk 100`), **Release** shows ✕, the card reads **Refused — funds held in escrow**, and the **Regulator view shows status BLOCKED** (read live from chain). Line: *"Show me another rail that refuses a settlement because the documents don't match."*
 
-## Safety / gotchas
-- Sepolia oracle wallet has ~0.04 ETH — good for dozens of settlements; no top-up needed.
-- If a settle ever falls back to a mock tx (RPC hiccup), the chain badge reads `mock` instead of `sepolia` — just re-run; it self-heals.
-- Live address table + contract links are in [`README.md`](./README.md) › *Live on Sepolia* if you want to show the repo on camera.
+## Gotchas
+- If a settle ever shows chain `mock` (RPC hiccup), just re-run — it self-heals.
+- The oracle wallet auto-tops-up test USDC, so settles won't fail mid-shoot (the warm-up absorbs the one slow mint).
+- Live addresses + verified-contract links are in [`README.md`](./README.md) › *Live on Sepolia* if you show the repo on camera.
