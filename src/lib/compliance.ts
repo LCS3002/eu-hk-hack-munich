@@ -6,10 +6,10 @@
 // against the on-chain passport and get the same verdict. This is the verdict OF
 // RECORD that gates settlement.
 //
-// The LLM (api/verify) is layered ON TOP as an assist only: in production it
-// extracts these structured fields from raw PDF/EDI documents and writes the
-// human-readable explanation. It does NOT decide. Compliance is rules, not a
-// single model call.
+// There is NO model in the decision path. The human-readable explanation is also
+// generated deterministically from these checks (see explainCompliance). In
+// production a structured-extraction step reads these fields from raw PDF/EDI
+// documents — but the verdict is, and stays, pure rules.
 
 import type { TradeScenario, ProofOfTradeResult, CrossDocCheck, Verdict } from './types'
 
@@ -119,4 +119,27 @@ export function runCompliance(scenario: TradeScenario): ProofOfTradeResult {
   const riskScore = Math.max(0, Math.min(100, Math.round(risk)))
   const verdict: Verdict = riskScore >= BLOCK_THRESHOLD ? 'BLOCK' : 'CLEAR'
   return { verdict, riskScore, flags, checks }
+}
+
+/**
+ * Build the human-readable explanation DETERMINISTICALLY from the engine's own
+ * check results — the words are generated from the same math as the verdict, so
+ * they can never drift from it. No model in the loop.
+ */
+export function explainCompliance(scenario: TradeScenario, result: ProofOfTradeResult): string {
+  const lines: string[] = []
+  lines.push(`Reading invoice ${scenario.invoice.invoiceRef} against bill of lading ${scenario.billOfLading.blRef}.`)
+  for (const c of result.checks) {
+    lines.push(`${c.name}: ${c.detail} — ${c.status === 'PASS' ? 'pass' : 'FAIL'}.`)
+  }
+  if (result.verdict === 'CLEAR') {
+    lines.push(
+      `All ${result.checks.length} cross-document checks pass — no trade-based money-laundering indicators. Risk score ${result.riskScore}/100. Recommending release.`
+    )
+  } else {
+    const n = result.flags.length
+    lines.push(`${n} red flag${n === 1 ? '' : 's'}: ${result.flags.join('; ')}.`)
+    lines.push(`Risk score ${result.riskScore}/100. Refusing settlement; holding the funds in escrow for review.`)
+  }
+  return lines.join('\n')
 }

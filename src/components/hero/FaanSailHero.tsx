@@ -447,7 +447,7 @@ export default function FaanSailHero({ onEnter }: { onEnter: () => void }) {
           </h2>
 
           <p className="fs-sub">
-            An AI gate verifies the trade (invoice vs bill of lading), a
+            A deterministic compliance gate verifies the trade (invoice vs bill of lading), a
             smart-contract escrow enforces the verdict, and settlement clears in
             seconds on the regulated stablecoin rail Hong Kong just licensed &mdash;
             the bad trade refused before a cent moves, every ledger reconciled off

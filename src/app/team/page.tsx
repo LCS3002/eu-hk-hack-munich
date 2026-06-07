@@ -32,7 +32,7 @@ const TEAM = [
 ]
 
 const STACK: [string, string][] = [
-  ['AI gate', 'Claude (claude-sonnet-4-6) — cross-document proof-of-trade, streamed over SSE'],
+  ['Compliance', 'Deterministic rules engine — 5 cross-document checks → verdict of record (no model in the decision path)'],
   ['Frontend', 'Next.js 15 (App Router) · React 19 · React-Three-Fiber'],
   ['Contracts', 'Solidity 0.8 — TradeEscrow + MockUSDC · Hardhat · verified on Etherscan'],
   ['Chain', 'Ethereum Sepolia · ethers v6 · oracle-gated release / refuse'],

@@ -28,7 +28,7 @@
   <!-- arrow Escrow -> Supplier -->
   <line x1="452" y1="94" x2="508" y2="94" stroke="#9a9a9a" stroke-width="1.5" marker-end="url(#m)"/>
   <text x="480" y="84" text-anchor="middle" font-size="9" font-weight="700" fill="#15803d">release</text>
-  <text x="480" y="112" text-anchor="middle" font-size="8.5" fill="#6b7280">AI-cleared</text>
+  <text x="480" y="112" text-anchor="middle" font-size="8.5" fill="#6b7280">rules-cleared</text>
 
   <!-- Supplier (paid) -->
   <rect x="514" y="52" width="184" height="84" rx="9" fill="#f0f7f2" stroke="#15803d" stroke-width="1.5"/>

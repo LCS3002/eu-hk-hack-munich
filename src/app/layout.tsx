@@ -23,8 +23,8 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'FaanSail — AI-verified, smart-contract-settled stablecoin payments',
-  description: 'Compliance-native payment infrastructure for the Hong Kong corridor: an AI gate verifies the trade, a smart-contract escrow enforces the verdict, and settlement clears instantly on a stablecoin rail — the bad trade refused before a cent moves, the good one reconciled off one on-chain event.',
+  title: 'FaanSail — rules-verified, smart-contract-settled stablecoin payments',
+  description: 'Compliance-native payment infrastructure for the Hong Kong corridor: a deterministic rules engine verifies the trade, a smart-contract escrow enforces the verdict, and settlement clears instantly on a stablecoin rail — the bad trade refused before a cent moves, the good one reconciled off one on-chain event.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -11,7 +11,7 @@ drive the demo. (Longer-form positioning + Q&A armour live in [`PITCH.md`](./PIT
 - Pace ≈ 145 words/min. Each script is ~290 words → ~2:00 with the demo pauses. Breathe; let the rail animate.
 
 ## What's on screen
-Header pills **Clean trade $46,000 · Over-invoiced $74,000**; the **phase rail** (Trade → AI gate → Escrow → Release → Settled) lights up live; the **globe** bleeds behind; end states are green **PAYMENT COMPLETE** (money flow + liquidity + **Regulator view · read from chain**) or red **Refused — funds held**.
+Header pills **Clean trade $46,000 · Over-invoiced $74,000**; the **phase rail** (Trade → Verify → Escrow → Release → Settled) lights up live; the **globe** bleeds behind; end states are green **PAYMENT COMPLETE** (money flow + liquidity + **Regulator view · read from chain**) or red **Refused — funds held**.
 
 ---
 
@@ -24,7 +24,7 @@ Header pills **Clean trade $46,000 · Over-invoiced $74,000**; the **phase rail*
 Settlement takes three to five days, at over six percent all-in. For a fintech moving ten million a month, around a million in capital sits frozen — pre-funded, just waiting. Reconciliation is days of manual matching. And compliance only checks the names on the payment — never the trade itself. So over-invoicing and capital flight walk straight through.
 
 **[0:40 — click ENTER CONSOLE]**
-FaanSail fixes all three. It's compliance-native settlement infrastructure: an AI gate verifies the actual trade — the invoice against the bill of lading — and *only then* does the money move, in seconds, on a stablecoin rail.
+FaanSail fixes all three. It's compliance-native settlement infrastructure: a deterministic compliance gate verifies the actual trade — the invoice against the bill of lading — and *only then* does the money move, in seconds, on a stablecoin rail.
 
 **[1:00 — console idle, globe]**
 And it runs on the exact rail Hong Kong just licensed — the Stablecoins Ordinance, Project Ensemble. Hong Kong is where this corridor closes.
@@ -45,8 +45,8 @@ Everyone else just moves money cheaper. We make settlement *verify the trade, fr
 **[0:00 — console]**
 "Three things normally happen in three separate systems, at three different times: the money moves, the trade is verified, the books are reconciled. FaanSail collapses them into one event. Here's how.
 
-**[0:20 — click "Clean trade"; point at the AI gate node + the compliance card]**
-First, compliance — and this is *not* a single AI call. It's a deterministic rules engine. Five cross-document checks — quantity, declared value against the supplier's history, HS code, beneficiary account, ship date — computed from the trade data into a risk score and a verdict of record. Claude only reads the documents and writes the explanation. It does not decide.
+**[0:20 — click "Clean trade"; point at the Verify node + the compliance card]**
+First, compliance — and this is *not* an AI call. It's a deterministic rules engine. Five cross-document checks — quantity, declared value against the supplier's history, HS code, beneficiary account, ship date — computed from the trade data into a risk score and a verdict of record. There is no model in the decision path; even the explanation you see is generated from those same checks.
 
 **[0:45 — rail advances: Escrow "$46k locked" → Release "→ supplier"]**
 That verdict gates the settlement on-chain. A Solidity escrow holds the stablecoin; `approveAndRelease` and `reject` are `onlyOracle` — so the verdict is what moves the money. The refusal is enforced by code, not advisory.
@@ -63,7 +63,7 @@ On liquidity we're honest — we take no FX risk; faster settlement just compres
 ---
 
 ## The refused beat (your differentiator — make it land)
-On **Over-invoiced**, the **AI gate** node turns red (`risk 100`), **Release** shows ✕, the card reads **Refused — funds held in escrow**, and the **Regulator view shows status BLOCKED** (read live from chain). The refusal verdict appears in a few seconds — you don't need to wait for the full on-chain reject to say the line:
+On **Over-invoiced**, the **Verify** node turns red (`risk 100`), **Release** shows ✕, the card reads **Refused — funds held in escrow**, and the **Regulator view shows status BLOCKED** (read live from chain). The refusal verdict appears in a few seconds — you don't need to wait for the full on-chain reject to say the line:
 > *"Show me another rail that refuses a settlement because the documents don't match."*
 
 ## Gotchas

@@ -27,7 +27,7 @@ Features that run end-to-end on the live app, with real data and real logic.
 - **On-chain escrow on Sepolia** (verified `TradeEscrow` + `MockUSDC`) — `deposit` locks funds + the trade passport; `approveAndRelease` (CLEAR) pays the supplier; `reject` (BLOCK) holds the funds. The release is `onlyOracle`-gated by the verdict. Real, mined transactions.
 - **Regulator read-back** (`/api/passport`) — reads `getPassport()` live from the contract and shows the on-chain trade + compliance status (reconciliation demonstrated, not claimed).
 - **On-chain finality** (`/api/txstatus`) — polls the receipt and surfaces the mined block + success.
-- **Live AI explanation** — Claude (`claude-sonnet-4-6`) streams the human-readable reasoning over SSE. It is an assist (it explains; in production it also extracts the fields from raw documents) — it does **not** decide the verdict.
+- **Deterministic explanation** — the human-readable reasoning is *generated from the engine's own checks* and streamed over SSE (typewriter). **No model sits in the decision path** — the words can't drift from the verdict.
 - **The settlement console UI** — interactive phase flow, animated money flow across real Sepolia wallets, the green "payment complete" receipt, and the corridor globe.
 
 ---
@@ -37,7 +37,7 @@ Features that run end-to-end on the live app, with real data and real logic.
 | What is faked | Where (file/folder) | Why we mocked it | What the real version would do |
 |---|---|---|---|
 | Settlement asset (`MockUSDC`, mintable ERC-20, 6 dp) | `contracts/contracts/MockUSDC.sol` | No licensed stablecoin exists on a public testnet | Settle in an HKMA-licensed stablecoin on the regulated rail |
-| Trade documents (two trade scenarios) | `src/lib/fixtures.ts` | Document ingestion was out of scope for the window | The LLM extracts the same fields from raw PDF / EDI invoices + bills of lading |
+| Trade documents (two trade scenarios) | `src/lib/fixtures.ts` | Document ingestion was out of scope for the window | A structured-extraction step reads the same fields from raw PDF / EDI invoices + bills of lading |
 | Supplier history (12-mo avg value, known beneficiary, prior shipments) | `src/lib/fixtures.ts` | No data source wired up | Pulled from the fintech's transaction history / a KYC-AML store |
 | Buyer wallet **is** the compliance oracle (one key) | `.env` (`ORACLE_PRIVATE_KEY`) | Demo simplicity | Separate buyer wallet + a multi-sig / HSM compliance oracle |
 | Fiat on/off ramps | not implemented | Out of scope | Licensed PSP / bank rails at each end |
@@ -49,7 +49,6 @@ Features that run end-to-end on the live app, with real data and real logic.
 
 | Service / API / dataset | Used for | Real call or mocked? | Auth |
 |---|---|---|---|
-| Anthropic Claude API (`claude-sonnet-4-6`) | Streams the human explanation of the verdict (assist only) | **Real call** | Personal API key (to be rotated post-event) |
 | Ethereum **Sepolia** (publicnode RPC) | On-chain settle / refuse + reads (`getPassport`, tx receipts) | **Real call** | Throwaway testnet private key |
 | Etherscan API | One-time contract-source **verification** | **Real call** | Free Etherscan API key |
 | Trade documents / supplier data | The trade being verified | **Mocked** (fixtures) | none |
@@ -63,14 +62,14 @@ Anything written **before** kickoff that we brought into this project.
 |---|---|---|---|
 | UI scaffolding — hero/voxel-globe technique, SSE streaming plumbing, design-system classes | Team's prior hackathon project **Meridian** (`eu-hk-meridian`) | UI components + patterns only, re-skinned light + rewired; **no business logic reused** | Team-owned, unlicensed |
 | `/team` page styling | Team's prior project **agorahack** (`github.com/LCS3002/agorahack`) | One page, adapted | Team-owned |
-| Libraries | Next.js, React, @react-three/fiber + drei + three, ethers v6, Hardhat + toolbox, `@openzeppelin/contracts` (ERC-20 base), `@anthropic-ai/sdk` | standard dependencies | MIT / Apache-2.0 |
+| Libraries | Next.js, React, @react-three/fiber + drei + three, ethers v6, Hardhat + toolbox, `@openzeppelin/contracts` (ERC-20 base) | standard dependencies | MIT / Apache-2.0 |
 
 Everything that makes this *FaanSail* — the deterministic **compliance engine**, the `TradeEscrow` contract, the chain bridge, the proof-of-trade gate, the concept, and the data model — was written **during the hackathon window**.
 
 ---
 
 ## 6. Known limitations & next steps
-- **Real document ingestion** — PDF/EDI → structured fields via the LLM, replacing the fixtures (the extraction layer is designed for but not wired).
+- **Real document ingestion** — PDF/EDI → structured fields, replacing the fixtures (the extraction layer is designed for but not wired).
 - **Deeper compliance rules** — sanctions / PEP screening, more trade-based-money-laundering typologies, dual-use-goods flags. The engine is built to extend.
 - **Production rail** — an HKMA-licensed stablecoin instead of `MockUSDC`, plus fiat on/off ramps.
 - **Oracle hardening** — separate buyer + a multi-sig compliance oracle; reorg-aware finality (settlement is submitted optimistically today).

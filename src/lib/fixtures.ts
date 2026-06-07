@@ -1,6 +1,6 @@
 // Harbour — demo fixtures
 // Two trade scenarios on the Africa→China-via-HK corridor: one clean, one dirty.
-// The dirty one carries cross-document inconsistencies the AI gate detects and
+// The dirty one carries cross-document inconsistencies the compliance gate detects and
 // the escrow refuses. Used by api/verify (input + fixture fallback) and the UI.
 
 import type { TradeScenario, Corridor } from './types'

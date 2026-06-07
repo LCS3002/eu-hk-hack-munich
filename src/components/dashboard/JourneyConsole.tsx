@@ -890,7 +890,7 @@ export default function JourneyConsole({
                   </span>
                 </div>
 
-                <Section label="AI Compliance Gate">
+                <Section label="Compliance gate · deterministic">
                   <VerdictBlock phase={phase} result={result} summaryLine={summaryLine} error={error} />
                 </Section>
 
@@ -972,7 +972,7 @@ function IdleCenter() {
           maxWidth: 340,
         }}
       >
-        An AI gate verifies the invoice against the bill of lading, settlement
+        A deterministic compliance gate verifies the invoice against the bill of lading, settlement
         clears on-chain in seconds, and the buyer, supplier and regulator
         reconcile off one event.
       </span>
@@ -1305,7 +1305,7 @@ function WalletFlow({ amount, released }: { amount: string; released: boolean })
         arriveDelay={0.7}
       />
       <FlowStep
-        action={released ? 'approveAndRelease() — AI-cleared' : 'reject() — AI-blocked'}
+        action={released ? 'approveAndRelease() — cleared' : 'reject() — blocked'}
         state={released ? 'done' : 'refused'}
         delay={0.95}
       />
@@ -1572,7 +1572,7 @@ function ReconLine({ settled, blocked }: { settled: boolean; blocked: boolean })
 
 // ─── The phase rail (the flow diagram across the top) ──────────────────────
 type PStatus = 'pending' | 'active' | 'done' | 'refused'
-const PHASE_LABELS = ['Trade', 'AI gate', 'Escrow', 'Release', 'Settled']
+const PHASE_LABELS = ['Trade', 'Verify', 'Escrow', 'Release', 'Settled']
 
 // Grasshopper-style node-and-wire flow: component boxes joined by bezier wires.
 function PhaseRail({ statuses, notes }: { statuses: PStatus[]; notes?: string[] }) {

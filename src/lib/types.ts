@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════════════
 // Harbour — FROZEN SHARED INTERFACES
-// Contract (Solidity), AI gate (api/verify), chain bridge (lib/chain) and UI
+// Contract (Solidity), proof-of-trade gate (api/verify), chain bridge (lib/chain) and UI
 // all build against these. Do not change a signature without updating all four.
 // ════════════════════════════════════════════════════════════════════════
 
